@@ -25,7 +25,7 @@ lint:hadolint:
   stage: lint
   extends: .feature-branch-rules
   allow_failure: false
-  image: hadolint/hadolint:2.8.0
+  image: hadolint:latest-alpine
   script:
     - hadolint Dockerfile.backend
     - hadolint Dockerfile.frontend
@@ -34,7 +34,7 @@ lint:yaml:
   stage: lint
   extends: .feature-branch-rules
   allow_failure: false
-  image: cytopia/yamllint
+  image: cytopia/yamllint:latest
   script:
     - yamllint -c .yamllint.yml .
 
@@ -56,4 +56,4 @@ lint:eslint:
     - .node-job
   allow_failure: false
   script:
-    - pnpm run lint:eslint
+    - pnpm run lint
