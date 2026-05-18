@@ -8,12 +8,16 @@
 .node-job:
   image: node:alpine
   before_script:
-    - npm ci
+    - npm install -g pnpm
+    - pnpm install
 
 lint:compose:
   stage: lint
   extends: .feature-branch-rules
   allow_failure: false
+  image: docker:latest
+  services:
+    - docker:24.0.5:dind
   script:
     - docker-compose -f docker-compose.yml config -q
 
@@ -21,6 +25,7 @@ lint:hadolint:
   stage: lint
   extends: .feature-branch-rules
   allow_failure: false
+  image: hadolint/hadolint:2.8.0
   script:
     - hadolint Dockerfile.backend
     - hadolint Dockerfile.frontend
@@ -29,6 +34,7 @@ lint:yaml:
   stage: lint
   extends: .feature-branch-rules
   allow_failure: false
+  image: cytopia/yamllint
   script:
     - yamllint -c .yamllint.yml .
 
@@ -36,6 +42,9 @@ lint:backend:
   stage: lint
   extends: .feature-branch-rules
   allow_failure: false
+  image: docker:latest
+  services:
+    - docker:24.0.5:dind
   script:
     - docker compose run --rm backend pnpm run lint
     - docker compose run --rm backend pnpm run lint:eslint
