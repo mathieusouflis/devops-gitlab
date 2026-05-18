@@ -8,3 +8,4 @@ rules:
   document-start: disable
   comments:
     min-spaces-from-content: 1
+  trailing-spaces: allow
