@@ -32,7 +32,7 @@ app.use("/users", usersRouter);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
-  res.status(500).json({ error: "Erreur serveur" });
+  res.status(500).json({ error: "Erreur  serveur" });
 });
 
 const port = Number(process.env.BACKEND_PORT) || 3000;
