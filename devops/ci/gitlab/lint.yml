@@ -1,0 +1,49 @@
+.feature-branch-rules:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^feature\/.*/
+
+.node-job:
+  image: node:alpine
+  before_script:
+    - npm install -g pnpm
+    - pnpm install
+
+lint:compose:
+  stage: lint
+  extends: .feature-branch-rules
+  allow_failure: false
+  image: docker:latest
+  services:
+    - docker:24.0.5-dind
+  script:
+    - find . -name "docker-compose*.yml" -o -name "docker-compose*.yaml" | xargs -I {} docker compose -f {} config -q
+
+lint:hadolint:
+  stage: lint
+  extends: .feature-branch-rules
+  allow_failure: false
+  image: hadolint/hadolint:latest-alpine
+  script:
+    - find . -name "Dockerfile*" -o -name "Dockerfile*" | xargs -I {} hadolint {}
+
+lint:yaml:
+  stage: lint
+  extends: .feature-branch-rules
+  allow_failure: false
+  image:
+    name: cytopia/yamllint:latest
+    entrypoint: ["/bin/ash", "-c"]
+  script:
+    - yamllint -c .yamllint.yml .
+
+lint:eslint:
+  stage: lint
+  extends:
+    - .feature-branch-rules
+    - .node-job
+  allow_failure: false
+  script:
+    - pnpm run lint

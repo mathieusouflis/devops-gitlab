@@ -1,7 +1,10 @@
 stages:
-  - build
+  - lint
   - test
+  - build
+  - deploy
 
 include:
   - local: "devops/ci/gitlab/build.yml"
   - local: "devops/ci/gitlab/test.yml"
+  - local: "devops/ci/gitlab/lint.yml"

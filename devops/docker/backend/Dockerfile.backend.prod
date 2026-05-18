@@ -18,7 +18,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 
 FROM base AS runtime
 
-RUN apk add --no-cache curl
+RUN apk add curl=8.19.0-r0 --no-cache
 
 COPY backend ./backend
 COPY --from=deps /app/node_modules ./node_modules
