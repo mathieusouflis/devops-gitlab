@@ -1,0 +1,13 @@
+dependency-scan:
+  stage: test
+  image: node:22-alpine
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - package.json
+        - package-lock.json
+        - yarn.lock
+        - pnpm-lock.yaml
+  script:
+    - npm audit --audit-level=high
+  allow_failure: false
