@@ -1,0 +1,70 @@
+networks:
+  internal:
+    name: Internal Network
+  external:
+    name: External Network
+    driver: bridge
+
+services:
+  db:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-root}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-root}
+      - POSTGRES_DB=${POSTGRES_DB:-main}
+    networks:
+      - internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-root} -d ${POSTGRES_DB:-main}",
+        ]
+      interval: 5s
+      timeout: 1s
+      retries: 3
+
+  backend:
+    build:
+      dockerfile: "./devops/docker/backend/Dockerfile.backend.prod"
+    networks:
+      - internal
+      - external
+    environment:
+      - BACKEND_PORT=${BACKEND_PORT:-3000}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-root}:${POSTGRES_PASSWORD:-root}@db:5432/${POSTGRES_DB:-main}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3001}
+    depends_on:
+      db:
+        condition: service_healthy
+
+    ports:
+      - 3000:${BACKEND_PORT:-3000}
+    healthcheck:
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:${BACKEND_PORT:-3000}/health"]
+      interval: 5s
+      timeout: 1s
+      retries: 3
+
+  frontend:
+    build:
+      dockerfile: "./devops/docker/frontend/Dockerfile.frontend.prod"
+      args:
+        - FRONTEND_PORT=${VITE_FRONTEND_PORT:-8088}
+        - VITE_FRONTEND_API_URL=${VITE_FRONTEND_API_URL:-http://localhost:3000}
+    networks:
+      - external
+    environment:
+      - VITE_FRONTEND_PORT=${VITE_FRONTEND_PORT:-8088}
+    ports:
+      - 3001:${VITE_FRONTEND_PORT:-8088}
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:${VITE_FRONTEND_PORT:-8088}"]
+      interval: 5s
+      timeout: 1s
+      retries: 3
