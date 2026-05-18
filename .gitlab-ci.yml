@@ -1,2 +1,7 @@
+stages:
+  - build
+  - test
+
 include:
-  - local: 'devops/ci/gitlab/pipeline.yml'
+  - local: "devops/ci/gitlab/build.yml"
+  - local: "devops/ci/gitlab/test.yml"
