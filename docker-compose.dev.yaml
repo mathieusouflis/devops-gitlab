@@ -1,0 +1,128 @@
+name: ops-dev
+
+networks:
+  db:
+    internal: true
+  app:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  backend_root_nm:
+  backend_pkg_nm:
+  frontend_root_nm:
+  frontend_pkg_nm:
+
+services:
+  db:
+    image: postgres:alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-root}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
+      POSTGRES_DB: ${POSTGRES_DB:-main}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./devops/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - db
+    ports:
+      - ${POSTGRES_PORT:-5432}:5432
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-root} -d ${POSTGRES_DB:-main}",
+        ]
+      interval: 2s
+      timeout: 2s
+      retries: 2
+      start_period: 10s
+
+  backend:
+    build:
+      context: .
+      dockerfile: ./devops/docker/backend/Dockerfile.backend.dev
+      args:
+        BACKEND_PORT: ${BACKEND_PORT:-3000}
+    restart: unless-stopped
+    environment:
+      BACKEND_PORT: ${BACKEND_PORT:-3000}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-root}:${POSTGRES_PASSWORD:-root}@db:5432/${POSTGRES_DB:-main}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      NODE_ENV: development
+    volumes:
+      - ./backend:/app/backend
+      - backend_root_nm:/app/node_modules
+      - backend_pkg_nm:/app/backend/node_modules
+    networks:
+      - db
+      - app
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:${BACKEND_PORT:-3000}/health || exit 1",
+        ]
+      interval: 3s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./devops/docker/frontend/Dockerfile.frontend.dev
+      args:
+        VITE_FRONTEND_PORT: ${VITE_FRONTEND_PORT:-5173}
+    restart: unless-stopped
+    environment:
+      VITE_FRONTEND_PORT: ${VITE_FRONTEND_PORT:-5173}
+      VITE_FRONTEND_API_URL: ${VITE_FRONTEND_API_URL:-http://localhost:3000}
+    volumes:
+      - ./frontend:/app/frontend
+      - frontend_root_nm:/app/node_modules
+      - frontend_pkg_nm:/app/frontend/node_modules
+    networks:
+      - app
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:${VITE_FRONTEND_PORT:-5173}/ || exit 1",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - ${BACKEND_PORT:-3000}:${BACKEND_PORT:-3000}
+      - ${VITE_FRONTEND_PORT:-5173}:${VITE_FRONTEND_PORT:-5173}
+    volumes:
+      - ./devops/docker/nginx/nginx.dev.conf:/etc/nginx/templates/default.conf.template:ro
+    environment:
+      BACKEND_PORT: ${BACKEND_PORT:-3000}
+      VITE_FRONTEND_PORT: ${VITE_FRONTEND_PORT:-5173}
+      NGINX_ENVSUBST_TEMPLATE_VARS: BACKEND_PORT VITE_FRONTEND_PORT
+    networks:
+      - app
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:${BACKEND_PORT:-3000} || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 3
