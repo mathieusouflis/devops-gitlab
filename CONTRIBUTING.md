@@ -54,10 +54,12 @@ See [Getting Started](docs/getting-started/README.md) for the full setup guide.
 ### Reporting Bugs
 
 Before opening an issue:
+
 - Search [existing issues](../../issues) to avoid duplicates
 - Make sure you are on the latest version (`git pull upstream main`)
 
 When opening a bug report, use the **Bug Report** template and include:
+
 - Steps to reproduce
 - Expected vs actual behavior
 - Your environment (OS, runtime version, relevant tool versions)
@@ -66,6 +68,7 @@ When opening a bug report, use the **Bug Report** template and include:
 ### Suggesting Features
 
 Open a **Feature Request** issue with:
+
 - A clear description of the problem the feature solves
 - Your proposed solution
 - Alternatives you considered
@@ -112,20 +115,21 @@ We follow **Conventional Commits**. Each commit message should be:
 
 **Types:**
 
-| Type       | When to use                           |
-|------------|---------------------------------------|
-| `feat`     | New feature or behavior               |
-| `fix`      | Bug fix                               |
-| `refactor` | Code change with no behavior change   |
-| `test`     | Adding or updating tests              |
-| `docs`     | Documentation only                    |
-| `chore`    | Tooling, dependencies, config         |
-| `perf`     | Performance improvement               |
-| `ci`       | CI/CD changes                         |
+| Type       | When to use                         |
+| ---------- | ----------------------------------- |
+| `feat`     | New feature or behavior             |
+| `fix`      | Bug fix                             |
+| `refactor` | Code change with no behavior change |
+| `test`     | Adding or updating tests            |
+| `docs`     | Documentation only                  |
+| `chore`    | Tooling, dependencies, config       |
+| `perf`     | Performance improvement             |
+| `ci`       | CI/CD changes                       |
 
 **Scope** (optional): the module or area affected, e.g. `auth`, `api`, `ui`, `docker`.
 
 **Examples:**
+
 ```
 feat(auth): add refresh token revocation on logout
 fix(api): return 409 when resource already exists
@@ -136,6 +140,7 @@ chore(deps): upgrade dependencies
 ```
 
 **Rules:**
+
 - Use the **imperative mood** ("add" not "adds" or "added")
 - Keep the first line under **72 characters**
 - Reference issues in the footer: `Closes #42`, `Fixes #17`
