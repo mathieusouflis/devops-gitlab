@@ -17,16 +17,15 @@ lint:compose:
   allow_failure: false
   image: docker:latest
   services:
-    - docker:24.0.5-dind  # Fixed: changed colon to a hyphen
+    - docker:24.0.5-dind
   script:
-    # Fixed: changed docker-compose to docker compose
     - docker compose -f docker-compose.yml config -q
 
 lint:hadolint:
   stage: lint
   extends: .feature-branch-rules
   allow_failure: false
-  image: hadolint:latest-alpine
+  image: hadolint/hadolint:latest-alpine
   script:
     - hadolint Dockerfile.backend
     - hadolint Dockerfile.frontend
@@ -35,7 +34,7 @@ lint:yaml:
   stage: lint
   extends: .feature-branch-rules
   allow_failure: false
-  image: 
+  image:
     name: cytopia/yamllint:latest
     entrypoint: ["/bin/ash", "-c"]
   script:
@@ -43,7 +42,7 @@ lint:yaml:
 
 lint:eslint:
   stage: lint
-  extends: 
+  extends:
     - .feature-branch-rules
     - .node-job
   allow_failure: false
