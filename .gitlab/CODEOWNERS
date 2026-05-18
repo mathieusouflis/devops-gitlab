@@ -1,0 +1,17 @@
+# CODEOWNERS
+# Owners are automatically requested for review when an MR modifies matched files.
+# Last matching rule takes precedence.
+#
+# Docs: https://docs.gitlab.com/ee/user/project/codeowners/
+
+# ── Default: all files
+* @@maintainer
+
+# ── CI/CD and GitLab config
+# .gitlab/ @org/devops
+
+# ── Documentation
+# /docs/ @org/docs-team
+
+# ── Security-sensitive paths
+# /src/auth/ @org/security-team
