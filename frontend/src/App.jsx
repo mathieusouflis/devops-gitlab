@@ -14,6 +14,7 @@ async function parseJsonResponse(res) {
   } catch {
     return { error: "Réponse invalide" };
   }
+  
 }
 
 export default function App() {
