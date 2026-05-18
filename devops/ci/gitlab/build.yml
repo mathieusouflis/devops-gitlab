@@ -1,0 +1,16 @@
+build:
+  stage: build
+
+  script:
+    - pnpm build
+
+  cache:
+    key: "turbo-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .turbo/cache
+  rules:
+    - changes:
+        - "**/*.ts"
+        - "**/*.tsx"
+        - "**/*.js"
+        - "**/*.jsx"
