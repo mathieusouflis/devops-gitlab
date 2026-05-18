@@ -1,8 +1,9 @@
 stages:
+  - lint
   - build
   - test
-  - lint
 
 include:
   - local: "devops/ci/gitlab/build.yml"
   - local: "devops/ci/gitlab/test.yml"
+  - local: "devops/ci/gitlab/lint.yml"
