@@ -35,7 +35,9 @@ lint:yaml:
   stage: lint
   extends: .feature-branch-rules
   allow_failure: false
-  image: yamllint:latest
+  image: 
+    name: cytopia/yamllint:latest
+    entrypoint: ["/bin/ash", "-c"]
   script:
     - yamllint -c .yamllint.yml .
 
