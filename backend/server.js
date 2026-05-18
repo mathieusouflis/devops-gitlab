@@ -9,6 +9,10 @@ app.get("/", (_req, res) => {
   res.json({ ok: true, service: "api", users: "/users" });
 });
 
+app.get("/health", (_req, res) => {
+  res.status(200).json({ ok: true });
+});
+
 app.use("/users", usersRouter);
 
 app.use((err, _req, res, _next) => {
@@ -16,7 +20,7 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: "Erreur serveur" });
 });
 
-const port = Number(process.env.PORT) || 3000;
+const port = Number(process.env.BACKEND_PORT) || 3000;
 
 async function main() {
   await waitForDb();
