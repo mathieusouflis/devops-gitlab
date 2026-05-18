@@ -37,7 +37,6 @@ lint:yaml:
   image:
     name: cytopia/yamllint:latest
     entrypoint: ["/bin/ash", "-c"]
-    
   script:
     - yamllint -c .yamllint.yml .
 
