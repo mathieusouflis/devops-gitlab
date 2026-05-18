@@ -19,7 +19,7 @@ lint:compose:
   services:
     - docker:24.0.5-dind
   script:
-    - docker compose -f docker-compose.yml config -q
+    - find . -name "docker-compose*.yml" -o -name "docker-compose*.yaml" | xargs -I {} docker compose -f {} config -q
 
 lint:hadolint:
   stage: lint
@@ -27,8 +27,7 @@ lint:hadolint:
   allow_failure: false
   image: hadolint/hadolint:latest-alpine
   script:
-    - hadolint Dockerfile.backend
-    - hadolint Dockerfile.frontend
+    - find . -name "Dockerfile*" -o -name "Dockerfile*" | xargs -I {} hadolint {}
 
 lint:yaml:
   stage: lint
