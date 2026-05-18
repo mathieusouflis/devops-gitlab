@@ -2,7 +2,11 @@
 # Validates commit messages against the Conventional Commits spec.
 # Activate with: git config core.hooksPath .githooks
 
-MSG=$(cat "$1")
+if [ -f "$1" ]; then
+  MSG=$(cat "$1")
+else
+  MSG="$1"
+fi
 
 # Strip comments and trailing whitespace
 SUBJECT=$(echo "$MSG" | sed '/^#/d' | head -1 | sed 's/[[:space:]]*$//')
