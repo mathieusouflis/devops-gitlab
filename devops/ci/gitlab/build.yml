@@ -1,5 +1,10 @@
 build:
   stage: build
+  image: node:20-bookworm
+
+  before_script:
+    - corepack enable
+    - pnpm install --frozen-lockfile
 
   script:
     - pnpm build
