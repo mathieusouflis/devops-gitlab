@@ -1,1 +1,64 @@
+# syntax=docker/dockerfile:1.7
 
+FROM node:20-alpine AS base
+
+WORKDIR /app
+
+ARG FRONTEND_PORT=${FRONTEND_PORT}
+
+ENV NODE_ENV=production
+ENV PNPM_HOME="/pnpm"
+
+RUN corepack enable
+
+FROM base AS deps
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY frontend/package.json ./frontend/package.json
+
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile --filter ./frontend...
+
+
+FROM deps AS build
+
+COPY frontend ./frontend
+
+ARG VITE_FRONTEND_API_URL=""
+ENV VITE_FRONTEND_API_URL=$VITE_FRONTEND_API_URL
+
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm --filter ./frontend... build
+
+
+FROM nginx:1.27-alpine AS runtime
+
+ARG FRONTEND_PORT=${FRONTEND_PORT}
+
+RUN rm /etc/nginx/conf.d/default.conf && \
+    printf '%s\n' \
+    "server {" \
+    "  listen ${FRONTEND_PORT};" \
+    "  server_name _;" \
+    "  root /usr/share/nginx/html;" \
+    "  index index.html;" \
+    "" \
+    "  location / {" \
+    "    try_files \$uri \$uri/ /index.html;" \
+    "  }" \
+    "" \
+    "  location /assets/ {" \
+    "    expires 1y;" \
+    "    add_header Cache-Control \"public, immutable\";" \
+    "  }" \
+    "}" \
+    > /etc/nginx/conf.d/default.conf
+
+COPY --from=build /app/frontend/dist /usr/share/nginx/html
+
+EXPOSE ${FRONTEND_PORT}
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -q -O /dev/null http://127.0.0.1/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]
