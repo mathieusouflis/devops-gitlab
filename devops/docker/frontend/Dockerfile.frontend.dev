@@ -9,7 +9,7 @@ ARG VITE_FRONTEND_PORT=${VITE_FRONTEND_PORT}
 ENV NODE_ENV=development
 ENV VITE_FRONTEND_PORT=$VITE_FRONTEND_PORT
 
-RUN corepack enable
+RUN apk add --no-cache curl && corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY frontend/package.json ./frontend/package.json
