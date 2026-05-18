@@ -1,24 +1,67 @@
-default:
-  image: node:20-slim
-  before_script:
-    - corepack enable
-    - corepack prepare pnpm@latest --activate
-    - pnpm config set store-dir .pnpm-store
-    - pnpm install --frozen-lockfile
-
-cache:
-  key:
-    files:
-      - pnpm-lock.yaml
-  paths:
-    - .pnpm-store/
-    - .turbo/
-
-run-lint:
-  stage: lint
-  script:
-    - pnpm lint
+.feature-branch-rules:
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      changes:
-        - "**/*.{js,jsx,ts,tsx}"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^feature\/.*/
+  
+
+  node-job:
+    image: node:alpine
+    before_script:
+      - npm ci
+
+
+lint:compose:
+  stage: lint
+  extends: .feature-branch-rules
+  allow_failure: false
+  script:
+    # Vérifier les fichiers docker (notamment compose.yml)
+    - docker-compose -f docker-compose.yml config -q
+
+lint:hadolint:
+  stage: lint
+  extends: .feature-branch-rules
+  allow_failure: false
+  script:
+    # Vérifier les fichiers docker (notamment compose.yml)
+    - hadolint /Dockerfile.backend
+    - hadolint /Dockerfile.frontend
+
+lint:yaml:
+  stage: lint
+  extends: .feature-branch-rules
+  allow_failure: false
+  script:
+    # Vérifier les fichiers docker (notamment compose.yml)
+    - yamllint -c .yamllint.yml .
+
+# lint:shell:
+#   stage: lint
+#   extends: .feature-branch-rules
+#   allow_failure: false
+#   script:
+#     # Vérifier les fichiers docker (notamment compose.yml)
+
+lint:backend:
+  stage: lint
+  extends: .feature-branch-rules
+  allow_failure: false
+  script:
+    # Vérifier les fichiers docker (notamment compose.yml)
+    - docker compose run --rm backend pnpm run lint
+    - docker compose run --rm backend pnpm run lint:eslint
+
+
+lint:eslint:
+  stage: lint
+  extends: .feature-branch-rules
+  allow_failure: false
+  extends:
+    - node-job
+  script:
+    # Vérifier les fichiers docker (notamment compose.yml)
+    - pnpm run lint:eslint
+
+
