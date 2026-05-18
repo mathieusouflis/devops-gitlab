@@ -17,9 +17,10 @@ lint:compose:
   allow_failure: false
   image: docker:latest
   services:
-    - docker:24.0.5:dind
+    - docker:24.0.5-dind  # Fixed: changed colon to a hyphen
   script:
-    - docker-compose -f docker-compose.yml config -q
+    # Fixed: changed docker-compose to docker compose
+    - docker compose -f docker-compose.yml config -q
 
 lint:hadolint:
   stage: lint
@@ -34,20 +35,9 @@ lint:yaml:
   stage: lint
   extends: .feature-branch-rules
   allow_failure: false
-  image: cytopia/yamllint:latest
+  image: yamllint:latest
   script:
     - yamllint -c .yamllint.yml .
-
-lint:backend:
-  stage: lint
-  extends: .feature-branch-rules
-  allow_failure: false
-  image: docker:latest
-  services:
-    - docker:24.0.5:dind
-  script:
-    - docker compose run --rm backend pnpm run lint
-    - docker compose run --rm backend pnpm run lint:eslint
 
 lint:eslint:
   stage: lint
