@@ -1,1 +1,21 @@
+FROM node:20-alpine
 
+WORKDIR /app
+
+ENV NODE_ENV=development
+
+RUN corepack enable
+
+ARG BACKEND_PORT=${BACKEND_PORT}
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY backend/package.json ./backend/package.json
+
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile --filter ./backend...
+
+COPY backend ./backend
+
+EXPOSE ${BACKEND_PORT}
+
+CMD ["pnpm", "--filter", "./backend...", "dev"]
