@@ -1,93 +1,45 @@
-# Project Name
+# CI / AWS — sample full-stack app
 
-<!-- Replace the title above, fill in each section, and delete these comments when done. -->
+Monorepo used for **continuous integration** and **containerized** local development: a **React + Vite** frontend, an **Express** API, **PostgreSQL**, and **nginx** as a reverse proxy. Docker assets and GitLab CI stubs live under `devops/`.
 
-[![CI](https://github.com/your-org/your-repo/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/your-repo/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+## Quick start (Docker)
 
-One-paragraph description of what this project does and who it is for.
+1. **Prerequisites:** [Docker](https://docs.docker.com/get-docker/) with Compose, [GNU Make](https://www.gnu.org/software/make/) (optional but recommended).
 
----
+2. From the **repository root**, create a `.env` file. Copy `.env.example` and adjust values so they match `docker-compose.yml` (see [`devops/README.md`](devops/README.md) for the exact variable names, including `POSTGRES_*_DEV`, `NGINX_CONF`, `DATABASE_URL`, and `VITE_*`).
 
-## Table of Contents
+3. Start the stack:
 
-- [Overview](#overview)
-- [Getting Started](#getting-started)
-- [Development](#development)
-- [Architecture](#architecture)
-- [Contributing](#contributing)
-- [License](#license)
+   ```bash
+   make up
+   ```
 
----
+4. Open the app and APIs (also shown by `make help`):
 
-## Overview
+   | What        | URL                   |
+   | ----------- | --------------------- |
+   | App (nginx) | http://localhost:8088 |
+   | API         | http://localhost:3000 |
+   | Vite dev    | http://localhost:5173 |
 
-Describe the problem this project solves, its main features, and any key design decisions worth highlighting upfront.
+Common Make targets: `make help`, `make down`, `make logs`, `make logs s=backend`, `make shell s=frontend`. See the [`Makefile`](Makefile) for the full list.
 
----
+## Repository layout
 
-## Getting Started
+| Path                     | Description                                                                 |
+| ------------------------ | --------------------------------------------------------------------------- |
+| [`backend/`](backend/)   | Express REST API (`/users` CRUD), `pg`, Node **pnpm**                       |
+| [`frontend/`](frontend/) | React 19 + Vite SPA, users UI, **pnpm**                                     |
+| [`devops/`](devops/)     | Dockerfiles, nginx config, Postgres init SQL, GitLab CI YAML fragments      |
+| `docker-compose.yml`     | Local multi-service stack                                                   |
+| `.gitlab-ci.yml`         | GitLab entrypoint (pipeline include may be commented until CI is filled in) |
 
-### Prerequisites
+## Documentation
 
-<!-- List the tools and versions required to run this project. -->
+- **[`backend/README.md`](backend/README.md)** — environment variables, API contract, local `pnpm start` vs `make up`.
+- **[`frontend/README.md`](frontend/README.md)** — Vite env vars, HMR behind nginx, scripts.
+- **[`devops/README.md`](devops/README.md)** — Docker/Compose wiring, CI placeholders, production image stubs.
 
-| Tool | Version | Install |
-|------|---------|---------|
-| <!-- e.g. Node, Python, Go, Java --> | <!-- e.g. >= 22.x --> | <!-- link --> |
+## Local development without Docker
 
-### Installation
-
-```bash
-git clone https://github.com/your-org/your-repo.git
-cd your-repo
-
-# Activate the commit-msg hook (optional but recommended)
-git config core.hooksPath .githooks
-
-# Copy and fill in environment variables
-cp .env.example .env
-
-# Install dependencies (replace with your package manager)
-# e.g. npm install / pip install -r requirements.txt / go mod download
-```
-
-See [docs/getting-started](docs/getting-started/README.md) for the full setup guide.
-
----
-
-## Development
-
-```bash
-# Start development server
-# Run tests
-# Lint / format
-# Build for production
-```
-
-<!-- Replace the comments above with your project's actual commands. -->
-
----
-
-## Architecture
-
-Brief description of the high-level structure. Link to detailed docs if available.
-
-```
-.
-├── src/           # Source code
-├── docs/          # Documentation
-└── .github/       # GitHub configuration
-```
-
----
-
-## Contributing
-
-Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
-
----
-
-## License
-
-Distributed under the [MIT License](LICENSE).
+Install **Node.js** (LTS) and **pnpm**, run Postgres yourself, then use `pnpm install` and `pnpm dev` / `pnpm start` inside `frontend/` and `backend/` respectively. Details are in each package README.
