@@ -4,7 +4,7 @@ WORKDIR /app
 
 ENV NODE_ENV=development
 
-RUN apk add --no-cache curl && corepack enable
+RUN apk add --no-cache curl=8.19.0-r0 && corepack enable
 
 ARG BACKEND_PORT=${BACKEND_PORT}
 
