@@ -1,106 +1,111 @@
-import { useCallback, useEffect, useState, startTransition } from 'react'
-import './App.css'
+import { useCallback, useEffect, useState, startTransition } from "react";
+import "./App.css";
 
-const apiBase = (import.meta.env.VITE_FRONTEND_API_URL || '').replace(/\/$/, '')
+const apiBase = (import.meta.env.VITE_FRONTEND_API_URL || "").replace(
+  /\/$/,
+  "",
+);
 
 async function parseJsonResponse(res) {
-  const text = await res.text()
-  if (!text) return null
+  const text = await res.text();
+  if (!text) return null;
   try {
-    return JSON.parse(text)
+    return JSON.parse(text);
   } catch {
-    return { error: 'Réponse invalide' }
+    return { error: "Réponse invalide" };
   }
 }
 
 export default function App() {
-  const [users, setUsers] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [form, setForm] = useState({ email: '', name: '' })
-  const [editingId, setEditingId] = useState(null)
-  const [saving, setSaving] = useState(false)
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [form, setForm] = useState({ email: "", name: "" });
+  const [editingId, setEditingId] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const loadUsers = useCallback(async () => {
-    setError(null)
-    setLoading(true)
+    setError(null);
+    setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/users`)
-      const data = await parseJsonResponse(res)
+      const res = await fetch(`${apiBase}/users`);
+      const data = await parseJsonResponse(res);
       if (!res.ok) {
-        setError(data?.error || `Erreur ${res.status}`)
-        setUsers([])
-        return
+        setError(data?.error || `Erreur ${res.status}`);
+        setUsers([]);
+        return;
       }
-      setUsers(Array.isArray(data) ? data : [])
+      setUsers(Array.isArray(data) ? data : []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Réseau indisponible')
-      setUsers([])
+      setError(e instanceof Error ? e.message : "Réseau indisponible");
+      setUsers([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
     startTransition(() => {
-      void loadUsers()
-    })
-  }, [loadUsers])
+      void loadUsers();
+    });
+  }, [loadUsers]);
 
   function startEdit(user) {
-    setEditingId(user.id)
-    setForm({ email: user.email, name: user.name })
+    setEditingId(user.id);
+    setForm({ email: user.email, name: user.name });
   }
 
   function cancelEdit() {
-    setEditingId(null)
-    setForm({ email: '', name: '' })
+    setEditingId(null);
+    setForm({ email: "", name: "" });
   }
 
   async function handleSubmit(e) {
-    e.preventDefault()
-    setSaving(true)
-    setError(null)
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
     const body = JSON.stringify({
       email: form.email.trim(),
       name: form.name.trim(),
-    })
-    const url = editingId ? `${apiBase}/users/${editingId}` : `${apiBase}/users`
-    const method = editingId ? 'PUT' : 'POST'
+    });
+    const url = editingId
+      ? `${apiBase}/users/${editingId}`
+      : `${apiBase}/users`;
+    const method = editingId ? "PUT" : "POST";
     try {
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
         body,
-      })
-      const data = await parseJsonResponse(res)
+      });
+      const data = await parseJsonResponse(res);
       if (!res.ok) {
-        setError(data?.error || `Erreur ${res.status}`)
-        return
+        setError(data?.error || `Erreur ${res.status}`);
+        return;
       }
-      cancelEdit()
-      await loadUsers()
+      cancelEdit();
+      await loadUsers();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Réseau indisponible')
+      setError(e instanceof Error ? e.message : "Réseau indisponible");
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
   async function handleDelete(id) {
-    if (!window.confirm('Supprimer cet utilisateur ?')) return
-    setError(null)
+    if (!window.confirm("Supprimer cet utilisateur ?")) return;
+    setError(null);
     try {
-      const res = await fetch(`${apiBase}/users/${id}`, { method: 'DELETE' })
+      const res = await fetch(`${apiBase}/users/${id}`, { method: "DELETE" });
       if (!res.ok && res.status !== 204) {
-        const data = await parseJsonResponse(res)
-        setError(data?.error || `Erreur ${res.status}`)
-        return
+        const data = await parseJsonResponse(res);
+        setError(data?.error || `Erreur ${res.status}`);
+        return;
       }
-      if (editingId === id) cancelEdit()
-      await loadUsers()
+      if (editingId === id) cancelEdit();
+      await loadUsers();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Réseau indisponible')
+      setError(e instanceof Error ? e.message : "Réseau indisponible");
     }
   }
 
@@ -109,8 +114,8 @@ export default function App() {
       <header className="app-header">
         <h1>Utilisateurs</h1>
         <p className="app-lead">
-          Mini-app connectée à l’API via{' '}
-          <code>{apiBase || '(VITE_FRONTEND_API_URL)'}</code> et nginx.
+          Mini-app connectée à l’API via{" "}
+          <code>{apiBase || "(VITE_FRONTEND_API_URL)"}</code> et nginx.
         </p>
       </header>
 
@@ -121,7 +126,7 @@ export default function App() {
       ) : null}
 
       <section className="panel">
-        <h2>{editingId ? 'Modifier' : 'Ajouter'} un utilisateur</h2>
+        <h2>{editingId ? "Modifier" : "Ajouter"} un utilisateur</h2>
         <form className="form" onSubmit={handleSubmit}>
           <label className="field">
             <span>Email</span>
@@ -130,7 +135,9 @@ export default function App() {
               name="email"
               autoComplete="email"
               value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, email: e.target.value }))
+              }
               required
             />
           </label>
@@ -147,10 +154,18 @@ export default function App() {
           </label>
           <div className="form-actions">
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Enregistrement…' : editingId ? 'Mettre à jour' : 'Créer'}
+              {saving
+                ? "Enregistrement…"
+                : editingId
+                  ? "Mettre à jour"
+                  : "Créer"}
             </button>
             {editingId ? (
-              <button type="button" className="btn btn-ghost" onClick={cancelEdit}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={cancelEdit}
+              >
                 Annuler
               </button>
             ) : null}
@@ -161,7 +176,12 @@ export default function App() {
       <section className="panel">
         <div className="panel-head">
           <h2>Liste</h2>
-          <button type="button" className="btn btn-ghost" onClick={loadUsers} disabled={loading}>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={loadUsers}
+            disabled={loading}
+          >
             Actualiser
           </button>
         </div>
@@ -189,8 +209,8 @@ export default function App() {
                     <td>{u.email}</td>
                     <td className="cell-date">
                       {u.createdAt
-                        ? new Date(u.createdAt).toLocaleString('fr-FR')
-                        : '—'}
+                        ? new Date(u.createdAt).toLocaleString("fr-FR")
+                        : "—"}
                     </td>
                     <td className="cell-actions">
                       <button
@@ -216,5 +236,5 @@ export default function App() {
         )}
       </section>
     </div>
-  )
+  );
 }
