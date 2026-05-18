@@ -1,0 +1,51 @@
+networks:
+  internal:
+    internal: true
+    name: Internal Network
+  external:
+    external:
+      name: External Network
+services:
+  db:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-root}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-root}
+      - POSTGRES_DB=${POSTGRES_DB:-main}
+    networks:
+      - internal
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${DB_USER:-root} -d ${DB_DATABASE:-main}"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+
+  backend:
+    build:
+      dockerfile: "./devops/docker/backend/Dockerfile.prod"
+    networks:
+      - internal
+      - external
+    environment:
+      - BACKEND_PORT=${BACKEND_PORT:-3000}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-root}:${POSTGRES_PASSWORD:-root}@db:5432/${POSTGRES_DB:-main}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://backend:${PORT:-3000}/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      dockerfile: "./devops/docker/frontend/Dockerfile.prod"
+    networks:
+      - external
+    environment:
+      - VITE_FRONTEND_API_URL=http://backend:${PORT:-3000}
+      - VITE_FRONTEND_PORT=${VITE_FRONTEND_PORT:-8088}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://frontend:${VITE_FRONTEND_PORT:-8088}"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
