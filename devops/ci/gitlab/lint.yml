@@ -6,7 +6,7 @@
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^feature\/.*/
   
 
-  node-job:
+  .node-job:
     image: node:alpine
     before_script:
       - npm ci
@@ -56,10 +56,10 @@ lint:backend:
 
 lint:eslint:
   stage: lint
-  extends: .feature-branch-rules
+  extends: 
+   .feature-branch-rules
+    .node-job
   allow_failure: false
-  extends:
-    - node-job
   script:
     # Vérifier les fichiers docker (notamment compose.yml)
     - pnpm run lint:eslint
