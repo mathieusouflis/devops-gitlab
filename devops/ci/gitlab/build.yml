@@ -2,6 +2,8 @@ build:
   stage: build
   image: node:20-bookworm
 
+  allow_failure: false
+
   before_script:
     - corepack enable
     - pnpm install --frozen-lockfile
@@ -14,6 +16,10 @@ build:
     paths:
       - .turbo/cache
   rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^feature\/.*/
     - changes:
         - "**/*.ts"
         - "**/*.tsx"
