@@ -4,7 +4,7 @@ networks:
   external:
     name: External Network
     driver: bridge
- 
+
 services:
   db:
     image: postgres:alpine
@@ -33,6 +33,7 @@ services:
     environment:
       - BACKEND_PORT=${BACKEND_PORT:-3000}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-root}:${POSTGRES_PASSWORD:-root}@db:5432/${POSTGRES_DB:-main}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3001}
     depends_on:
       db:
         condition: service_healthy
@@ -51,7 +52,7 @@ services:
       dockerfile: "./devops/docker/frontend/Dockerfile.frontend.prod"
       args:
         - FRONTEND_PORT=${VITE_FRONTEND_PORT:-8088}
-        - VITE_FRONTEND_API_URL=http://backend:${BACKEND_PORT:-3000}
+        - VITE_FRONTEND_API_URL=${VITE_FRONTEND_API_URL:-http://localhost:3000}
     networks:
       - external
     environment:
