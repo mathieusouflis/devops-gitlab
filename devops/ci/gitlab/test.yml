@@ -14,7 +14,7 @@
     DOCKER_HOST: "tcp://docker:2375"
     DOCKER_TLS_CERTDIR: ""
 
-test:unit:
+test_unit:
   stage: test
   image: node:20-slim
   before_script:
@@ -29,7 +29,7 @@ test:unit:
     reports:
       junit: backend/test-results/junit.xml  
 
-test:integration:
+test_integration:
   stage: test
   extends:
     - .feature-branch-rules
@@ -51,7 +51,7 @@ test:integration:
     reports:
       junit: backend/junit.xml
 
-test:e2e:
+test_e2e:
   stage: test
   extends:
     - .feature-branch-rules
@@ -74,7 +74,7 @@ test:e2e:
     reports:
       junit: backend/e2e-junit.xml
 
-test:security-scan:
+test_security_scan:
   stage: test
   extends: .feature-branch-rules
   allow_failure: true
