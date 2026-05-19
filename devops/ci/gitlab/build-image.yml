@@ -7,11 +7,6 @@ build-image:
 
   allow_failure: false
 
-  needs:
-    - job: lint
-    - job: test
-    - job: build
-
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
