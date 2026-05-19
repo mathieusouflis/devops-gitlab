@@ -43,8 +43,6 @@ test:e2e:
     - .feature-branch-rules
     - .node-job
   allow_failure: true
-  image:
-    - mcr.microsoft.com/playwright:v1.40.0-jammy
   before_script:
     - npm install -g pnpm
     - pnpm install
