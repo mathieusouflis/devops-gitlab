@@ -8,7 +8,8 @@
     "preview": "turbo preview",
     "build": "turbo build",
     "build:watch": "turbo build:watch",
-    "lint": "turbo lint"
+    "lint": "turbo lint",
+    "test": "turbo test"
   },
   "keywords": [],
   "author": "",
