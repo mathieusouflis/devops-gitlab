@@ -2,6 +2,12 @@ provider "aws" {
   region = var.aws_region
 }
 
+locals {
+  ecr_account_id     = split(":", var.ecr_repository_arn)[4]
+  ecr_registry       = "${local.ecr_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com"
+  ecr_repository_uri = "${local.ecr_registry}/${split("repository/", var.ecr_repository_arn)[1]}"
+}
+
 module "iam" {
   source              = "./modules/iam"
   ecr_repository_arn  = var.ecr_repository_arn
@@ -41,4 +47,28 @@ module "vpc" {
     }
   }
   vpc_cidr = var.vpc_cidr
+}
+
+module "ssm" {
+  source = "./modules/ssm"
+
+  postgres_user         = var.app_postgres_user
+  postgres_password     = var.app_postgres_password
+  postgres_db           = var.app_postgres_db
+  backend_port          = var.app_backend_port
+  cors_origin           = var.app_cors_origin
+  vite_frontend_port    = var.app_vite_frontend_port
+  http_port             = var.app_http_port
+  vite_frontend_api_url = var.app_vite_frontend_api_url
+}
+
+module "ec2" {
+  source                         = "./modules/ec2"
+  aws_region                     = var.aws_region
+  vpc_id                         = module.vpc.vpc_id
+  private_subnet_ids             = module.vpc.private_subnets
+  vpc_cidr                       = var.vpc_cidr
+  ecr_registry                   = local.ecr_registry
+  ecr_repository_uri             = local.ecr_repository_uri
+  ecr_read_instance_profile_name = module.iam.ecr_read_instance_profile_name
 }

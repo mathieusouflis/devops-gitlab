@@ -1,3 +1,6 @@
+data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
+
 # Shared trust policy
 
 data "aws_iam_policy_document" "ec2_assume_role" {
@@ -43,6 +46,23 @@ data "aws_iam_policy_document" "ecr_read" {
     ]
     resources = [var.ecr_repository_arn]
   }
+
+  statement {
+    sid    = "SSMGetParams"
+    effect = "Allow"
+    actions = [
+      "ssm:GetParameter",
+      "ssm:GetParameters",
+      "ssm:GetParametersByPath",
+    ]
+    resources = ["arn:aws:ssm:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:parameter/group1/prod/*"]
+  }
+}
+
+# SSM Session Manager — allows `aws ssm start-session` without opening port 22
+resource "aws_iam_role_policy_attachment" "ecr_read_ssm" {
+  role       = aws_iam_role.ecr_read.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 resource "aws_iam_policy" "ecr_read" {
