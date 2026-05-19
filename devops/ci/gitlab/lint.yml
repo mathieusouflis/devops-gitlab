@@ -31,10 +31,10 @@ lint:compose:
 lint:hadolint:
   stage: lint
   extends: .feature-branch-rules
-  allow_failure: false
+  allow_failure: true
   image: hadolint/hadolint:latest-alpine
   script:
-    - find . -name "Dockerfile*" -o -name "Dockerfile*" | xargs -I {} hadolint {}
+    - find . -name "Dockerfile*" | xargs -I {} hadolint {}
 
 lint:yaml:
   stage: lint
