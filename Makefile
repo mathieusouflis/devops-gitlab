@@ -64,7 +64,7 @@ prune: ## Run docker system prune on unused Docker data
 # GitLab Runner (local)
 RUNNER_COMPOSE ?= docker compose -f docker-compose.runner.yaml
 
-.PHONY: runner-up runner-down runner-register runner-logs runner-unregister
+.PHONY: runner-up runner-down runner-register runner-logs runner-unregister runner-reset
 
 runner-up: ## Start the local GitLab Runner
 	$(RUNNER_COMPOSE) up -d
@@ -81,12 +81,14 @@ runner-register: ## Register this machine as a runner (uses GITLAB_RUNNER_TOKEN 
 		--executor docker \
 		--docker-image docker:27.0.3 \
 		--docker-privileged \
-		--cache-type filesystem \
-		--cache-path /cache \
+		--request-concurrency 4 \
 		--description "local-$(shell hostname)"
 
 runner-unregister: ## Unregister and remove local runner config
 	$(RUNNER_COMPOSE) run --rm gitlab-runner unregister --all-runners
+	$(RUNNER_COMPOSE) down -v
+
+runner-reset: ## Force-wipe runner config volume without contacting GitLab (fixes stale cache adapter errors)
 	$(RUNNER_COMPOSE) down -v
 
 runner-logs: ## Follow local GitLab Runner logs
