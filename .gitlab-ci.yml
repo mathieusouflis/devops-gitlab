@@ -12,7 +12,7 @@ stages:
   - lint
   - test
   - build
-  - build-image
+  - build-image-dev
   - deploy
 
 include:
@@ -20,4 +20,4 @@ include:
   - local: "devops/ci/gitlab/test.yml"
   - local: "devops/ci/gitlab/build.yml"
   - local: "devops/ci/gitlab/security.yml"
-  - local: "devops/ci/gitlab/build-image.yml"
+  - local: "devops/ci/gitlab/build-image-dev.yml"
