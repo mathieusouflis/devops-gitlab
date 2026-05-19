@@ -48,15 +48,17 @@ test:integration:
     - .feature-branch-rules
     - .docker-node-job
   allow_failure: false
+  variables:
+    API_URL: "http://docker:${BACKEND_PORT}"
   cache:
     key: "turbo-${CI_COMMIT_REF_SLUG}"
     paths:
       - .turbo/cache
   script:
-    - docker compose -f docker-compose.prod.yaml up -d db backend
+    - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml up -d db backend
     - cd backend
     - pnpm run test:integration
-    - docker compose -f docker-compose.prod.yaml down
+    - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml down
 
 test:e2e:
   stage: test
@@ -64,12 +66,15 @@ test:e2e:
     - .feature-branch-rules
     - .docker-node-job
   allow_failure: true
+  variables:
+    FRONTEND_URL: "http://docker:${HTTP_PORT}"
+    API_URL: "http://docker:${HTTP_PORT}${VITE_FRONTEND_API_URL}"
   cache:
     key: "turbo-${CI_COMMIT_REF_SLUG}"
     paths:
       - .turbo/cache
   script:
-    - docker compose -f docker-compose.prod.yaml up -d db backend frontend
+    - docker compose -f docker-compose.prod.yaml up -d db backend frontend nginx
     - cd backend
     - pnpm run test:e2e
     - docker compose -f docker-compose.prod.yaml down
