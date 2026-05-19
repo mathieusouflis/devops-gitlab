@@ -54,3 +54,6 @@ build-image:
         docker push "${BUILD_REGISTRY_IMAGE}/backend:develop"
         docker push "${BUILD_REGISTRY_IMAGE}/frontend:develop"
       fi
+
+  needs:
+    - build
