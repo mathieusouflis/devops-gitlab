@@ -44,16 +44,3 @@ build-image:
         docker push "${BUILD_REGISTRY_IMAGE}/backend:develop"
         docker push "${BUILD_REGISTRY_IMAGE}/frontend:develop"
       fi
-
-  rules:
-    - if: $CI_COMMIT_BRANCH == "develop"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - changes:
-        - "backend/**/*"
-        - "frontend/**/*"
-        - "package.json"
-        - "pnpm-lock.yaml"
-        - "pnpm-workspace.yaml"
-        - ".dockerignore"
-        - "devops/docker/**/*"
-    - when: never
