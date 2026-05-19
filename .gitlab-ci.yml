@@ -2,8 +2,8 @@ stages:
   - lint
   - test
   - build
-  - deploy
   - build-image
+  - deploy
 
 include:
   - local: "devops/ci/gitlab/lint.yml"
