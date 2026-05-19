@@ -25,9 +25,6 @@ lint:compose:
   image: docker:latest
   services:
     - docker:24.0.5-dind
-  environment:
-    - name: prod/$CI_COMMIT_REF_SLUG
-
   script:
     - find . -name "docker-compose*.yml" -o -name "docker-compose*.yaml" | xargs -I {} docker compose -f {} config -q
 
