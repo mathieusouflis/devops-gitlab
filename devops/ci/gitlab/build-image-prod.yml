@@ -1,9 +1,9 @@
 build-image-prod:
   stage: build-image-prod
-  image: docker:27
+  image: docker:24.0.5
 
   services:
-    - docker:27-dind
+    - docker:24.0.5-dind
 
   allow_failure: false
 
@@ -13,7 +13,7 @@ build-image-prod:
     DOCKER_BUILDKIT: "1"
 
   before_script:
-    - apk add --no-cache aws-cli
+    - apk add --no-chache aws-cli
     - aws ecr get-login-password --region "$AWS_ECR_REGION" | docker login --username AWS --password-stdin "$AWS_ECR_REGISTRY"
 
   script:
