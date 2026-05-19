@@ -3,7 +3,8 @@ const assert = require("node:assert/strict");
 const dotenv = require("dotenv");
 
 dotenv.config({
-  path: process.cwd() + "/../.env"
+  path: process.cwd() + "/../.env",
+  override: false
 });
 
 function trimSlash(s) {

@@ -4,7 +4,8 @@ const { connectionString } = require("../../db");
 const dotenv = require("dotenv");
 
 dotenv.config({
-  path: process.cwd() + "/../.env"
+  path: process.cwd() + "/../.env",
+  override: false
 });
 
 describe("connectionString", () => {
