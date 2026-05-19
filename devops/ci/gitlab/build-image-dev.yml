@@ -43,7 +43,3 @@ build-image-dev:
     - docker tag "$FRONTEND_IMAGE_SHA_TAG" "${CI_REGISTRY_IMAGE}/frontend:develop"
     - docker push "${CI_REGISTRY_IMAGE}/backend:develop"
     - docker push "${CI_REGISTRY_IMAGE}/frontend:develop"
-
-  rules:
-    - if: $CI_COMMIT_BRANCH == "develop"
-    - when: never
