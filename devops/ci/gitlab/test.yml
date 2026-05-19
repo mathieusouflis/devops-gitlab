@@ -6,10 +6,27 @@
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^feature\/.*/
 
 .node-job:
-  image: node:alpine
+  image: node:20-alpine
   before_script:
-    - npm install -g pnpm
-    - pnpm install
+    - corepack enable
+    - corepack prepare pnpm@latest --activate
+    - pnpm install --frozen-lockfile
+
+.docker-node-job:
+  image: node:20-alpine
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_CERT_PATH: "/certs/client"
+    DOCKER_TLS_VERIFY: "1"
+  services:
+    - name: docker:24.0.5-dind
+      alias: docker
+  before_script:
+    - apk add --no-cache docker-cli docker-compose
+    - corepack enable
+    - corepack prepare pnpm@latest --activate
+    - pnpm install --frozen-lockfile
 
 test:unit:
   stage: test
@@ -22,48 +39,37 @@ test:unit:
       - .turbo/cache
   allow_failure: false
   script:
-    - echo "Running unit tests..."
     - pnpm run test:unit
-    - echo "unit-tests-completed"
 
 test:integration:
   stage: test
   extends:
     - .feature-branch-rules
+    - .docker-node-job
   allow_failure: false
   cache:
     key: "turbo-${CI_COMMIT_REF_SLUG}"
     paths:
       - .turbo/cache
-  image: docker:24.0.5
-  services:
-    - docker:24.0.5-dind
   script:
-    - echo "Running integration tests..."
     - docker compose -f docker-compose.dev.yaml up -d db backend
-    - corepack enable && pnpm install && pnpm run test:integration
+    - pnpm run test:integration
     - docker compose -f docker-compose.dev.yaml down
-    - echo "integration-tests-completed"
 
 test:e2e:
   stage: test
   extends:
     - .feature-branch-rules
+    - .docker-node-job
   allow_failure: true
-  image: docker:24.0.5
   cache:
     key: "turbo-${CI_COMMIT_REF_SLUG}"
     paths:
       - .turbo/cache
-  services:
-    - docker:24.0.5-dind
-
   script:
-    - echo "Running end-to-end tests..."
     - docker compose -f docker-compose.dev.yaml up -d db backend frontend
-    - corepack enable && pnpm install && pnpm run test:e2e
+    - pnpm run test:e2e
     - docker compose -f docker-compose.dev.yaml down
-    - echo "e2e-tests-completed"
 
 test:security-scan:
   stage: test
@@ -79,8 +85,6 @@ test:security-scan:
   services:
     - docker:24.0.5-dind
   script:
-    - echo "Running security scan..."
     - trivy image --download-db-only --cache-dir .trivycache
     - trivy fs --exit-code 1 --severity HIGH,CRITICAL --cache-dir .trivycache/ .
     - trivy config --exit-code 1 --severity HIGH,CRITICAL devops/docker/
-    - echo "security-scan-completed"
