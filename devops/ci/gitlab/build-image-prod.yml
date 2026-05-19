@@ -5,7 +5,8 @@ build-image-prod:
   services:
     - docker:27.0.3-dind
 
-  interruptible: true
+  interruptible: false
+  allow_failure: false
   timeout: 20 minutes
 
   retry:
@@ -26,20 +27,33 @@ build-image-prod:
     - build
 
   before_script:
-    - apk add --no-cache aws-cli
-    - aws ecr get-login-password --region "$AWS_ECR_REGION" | docker login --username AWS --password-stdin "$AWS_ECR_REGISTRY"
+    - apk add --no-cache curl
+    - |
+      case "$(uname -m)" in
+        aarch64) PLATFORM="linux-arm64" ;;
+        x86_64)  PLATFORM="linux-amd64" ;;
+        *) echo "Unsupported architecture: $(uname -m)" && exit 1 ;;
+      esac
+      curl -fsSL "https://amazon-ecr-credential-helper-releases.s3.us-east-2.amazonaws.com/0.12.0/${PLATFORM}/docker-credential-ecr-login" \
+        -o /usr/local/bin/docker-credential-ecr-login
+      chmod +x /usr/local/bin/docker-credential-ecr-login
+    - mkdir -p /root/.docker
+    - printf '{"credHelpers":{"%s":"ecr-login"}}' "$AWS_ECR_REGISTRY" > /root/.docker/config.json
+    - test -n "$AWS_ECR_REGION"
+    - test -n "$AWS_ECR_REGISTRY"
+    - test -n "$AWS_ECR_REPOSITORY_URI"
+    - test -n "$BACKEND_PORT"
+    - test -n "$VITE_FRONTEND_PORT"
+    - test -n "$VITE_FRONTEND_API_URL"
 
   script:
     - export BACKEND_IMAGE_SHA_TAG="${AWS_ECR_REPOSITORY_URI}:backend-${CI_COMMIT_SHA}"
     - export BACKEND_IMAGE_SHORT_TAG="${AWS_ECR_REPOSITORY_URI}:backend-${CI_COMMIT_SHORT_SHA}"
     - export FRONTEND_IMAGE_SHA_TAG="${AWS_ECR_REPOSITORY_URI}:frontend-${CI_COMMIT_SHA}"
     - export FRONTEND_IMAGE_SHORT_TAG="${AWS_ECR_REPOSITORY_URI}:frontend-${CI_COMMIT_SHORT_SHA}"
-    - echo "Building prod images for ${CI_COMMIT_SHA} into ECR"
-    - docker pull "${AWS_ECR_REPOSITORY_URI}:backend-production" || true
+    - echo "Building prod images for ${CI_COMMIT_SHA} into ${AWS_ECR_REPOSITORY_URI}"
     - |
       docker build \
-        --cache-from "${AWS_ECR_REPOSITORY_URI}:backend-production" \
-        --build-arg BUILDKIT_INLINE_CACHE=1 \
         --file devops/docker/backend/Dockerfile.backend.prod \
         --build-arg BACKEND_PORT="$BACKEND_PORT" \
         --tag "$BACKEND_IMAGE_SHA_TAG" \
@@ -47,14 +61,9 @@ build-image-prod:
         --label "org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
         --label "org.opencontainers.image.revision=${CI_COMMIT_SHA}" \
         --label "org.opencontainers.image.source=${CI_PROJECT_URL}" \
-        --label "org.opencontainers.image.version=${CI_COMMIT_SHORT_SHA}" \
-        --label "org.opencontainers.image.title=backend" \
         .
-    - docker pull "${AWS_ECR_REPOSITORY_URI}:frontend-production" || true
     - |
       docker build \
-        --cache-from "${AWS_ECR_REPOSITORY_URI}:frontend-production" \
-        --build-arg BUILDKIT_INLINE_CACHE=1 \
         --file devops/docker/frontend/Dockerfile.frontend.prod \
         --build-arg FRONTEND_PORT="$VITE_FRONTEND_PORT" \
         --build-arg VITE_FRONTEND_API_URL="$VITE_FRONTEND_API_URL" \
@@ -63,8 +72,6 @@ build-image-prod:
         --label "org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
         --label "org.opencontainers.image.revision=${CI_COMMIT_SHA}" \
         --label "org.opencontainers.image.source=${CI_PROJECT_URL}" \
-        --label "org.opencontainers.image.version=${CI_COMMIT_SHORT_SHA}" \
-        --label "org.opencontainers.image.title=frontend" \
         .
     - docker push "$BACKEND_IMAGE_SHA_TAG"
     - docker push "$BACKEND_IMAGE_SHORT_TAG"
@@ -74,16 +81,8 @@ build-image-prod:
     - docker tag "$FRONTEND_IMAGE_SHA_TAG" "${AWS_ECR_REPOSITORY_URI}:frontend-production"
     - docker push "${AWS_ECR_REPOSITORY_URI}:backend-production"
     - docker push "${AWS_ECR_REPOSITORY_URI}:frontend-production"
-    - docker inspect --format='{{index .RepoDigests 0}}' "${AWS_ECR_REPOSITORY_URI}:backend-production" > backend.digest
-    - docker inspect --format='{{index .RepoDigests 0}}' "${AWS_ECR_REPOSITORY_URI}:frontend-production" > frontend.digest
-
-  artifacts:
-    paths:
-      - backend.digest
-      - frontend.digest
-    expire_in: 7 days
 
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
-      when: on_success
+      when: manual
     - when: never
