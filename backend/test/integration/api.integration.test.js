@@ -13,13 +13,8 @@ function trimSlash(s) {
 
 async function findApiBase() {
   const candidates = [
-    ...(process.env.VITE_FRONTEND_API_URL
-      ? [/^\d+$/.test(process.env.VITE_FRONTEND_API_URL)
-          ? `http://127.0.0.1:${process.env.VITE_FRONTEND_API_URL}`
-          : process.env.VITE_FRONTEND_API_URL.startsWith("/")
-            ? `http://127.0.0.1${process.env.VITE_FRONTEND_API_URL}`
-            : process.env.VITE_FRONTEND_API_URL]
-      : []),
+    process.env.API_URL,
+    `http://127.0.0.1:${process.env.BACKEND_PORT || "3000"}`,
   ]
     .filter(Boolean)
     .map(trimSlash);
@@ -29,7 +24,6 @@ async function findApiBase() {
       const res = await fetch(`${base}/users`);
       if (res.status !== 200) continue;
       const data = await res.json();
-      console.log(data)
       if (Array.isArray(data)) return base;
     } catch {}
   }

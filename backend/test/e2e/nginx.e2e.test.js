@@ -47,6 +47,7 @@ async function findFrontendBase() {
 async function findApiBase(frontendBase) {
   const apiCandidates = [
     process.env.API_URL,
+    process.env.BACKEND_PORT ? `http://127.0.0.1:${process.env.BACKEND_PORT}` : null,
     ...(process.env.VITE_FRONTEND_API_URL
       ? [/^\d+$/.test(process.env.VITE_FRONTEND_API_URL)
           ? `${frontendBase}:${process.env.VITE_FRONTEND_API_URL}`
