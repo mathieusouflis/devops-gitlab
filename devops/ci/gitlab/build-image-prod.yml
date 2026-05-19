@@ -1,0 +1,89 @@
+build-image-prod:
+  stage: publish
+  image: docker:27.0.3
+
+  services:
+    - docker:27.0.3-dind
+
+  interruptible: true
+  timeout: 20 minutes
+
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
+  environment:
+    name: production
+
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_BUILDKIT: "1"
+
+  needs:
+    - build
+
+  before_script:
+    - apk add --no-cache aws-cli
+    - aws ecr get-login-password --region "$AWS_ECR_REGION" | docker login --username AWS --password-stdin "$AWS_ECR_REGISTRY"
+
+  script:
+    - export BACKEND_IMAGE_SHA_TAG="${AWS_ECR_REPOSITORY_URI}:backend-${CI_COMMIT_SHA}"
+    - export BACKEND_IMAGE_SHORT_TAG="${AWS_ECR_REPOSITORY_URI}:backend-${CI_COMMIT_SHORT_SHA}"
+    - export FRONTEND_IMAGE_SHA_TAG="${AWS_ECR_REPOSITORY_URI}:frontend-${CI_COMMIT_SHA}"
+    - export FRONTEND_IMAGE_SHORT_TAG="${AWS_ECR_REPOSITORY_URI}:frontend-${CI_COMMIT_SHORT_SHA}"
+    - echo "Building prod images for ${CI_COMMIT_SHA} into ECR"
+    - docker pull "${AWS_ECR_REPOSITORY_URI}:backend-production" || true
+    - |
+      docker build \
+        --cache-from "${AWS_ECR_REPOSITORY_URI}:backend-production" \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --file devops/docker/backend/Dockerfile.backend.prod \
+        --build-arg BACKEND_PORT="$BACKEND_PORT" \
+        --tag "$BACKEND_IMAGE_SHA_TAG" \
+        --tag "$BACKEND_IMAGE_SHORT_TAG" \
+        --label "org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+        --label "org.opencontainers.image.revision=${CI_COMMIT_SHA}" \
+        --label "org.opencontainers.image.source=${CI_PROJECT_URL}" \
+        --label "org.opencontainers.image.version=${CI_COMMIT_SHORT_SHA}" \
+        --label "org.opencontainers.image.title=backend" \
+        .
+    - docker pull "${AWS_ECR_REPOSITORY_URI}:frontend-production" || true
+    - |
+      docker build \
+        --cache-from "${AWS_ECR_REPOSITORY_URI}:frontend-production" \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --file devops/docker/frontend/Dockerfile.frontend.prod \
+        --build-arg FRONTEND_PORT="$VITE_FRONTEND_PORT" \
+        --build-arg VITE_FRONTEND_API_URL="$VITE_FRONTEND_API_URL" \
+        --tag "$FRONTEND_IMAGE_SHA_TAG" \
+        --tag "$FRONTEND_IMAGE_SHORT_TAG" \
+        --label "org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+        --label "org.opencontainers.image.revision=${CI_COMMIT_SHA}" \
+        --label "org.opencontainers.image.source=${CI_PROJECT_URL}" \
+        --label "org.opencontainers.image.version=${CI_COMMIT_SHORT_SHA}" \
+        --label "org.opencontainers.image.title=frontend" \
+        .
+    - docker push "$BACKEND_IMAGE_SHA_TAG"
+    - docker push "$BACKEND_IMAGE_SHORT_TAG"
+    - docker push "$FRONTEND_IMAGE_SHA_TAG"
+    - docker push "$FRONTEND_IMAGE_SHORT_TAG"
+    - docker tag "$BACKEND_IMAGE_SHA_TAG" "${AWS_ECR_REPOSITORY_URI}:backend-production"
+    - docker tag "$FRONTEND_IMAGE_SHA_TAG" "${AWS_ECR_REPOSITORY_URI}:frontend-production"
+    - docker push "${AWS_ECR_REPOSITORY_URI}:backend-production"
+    - docker push "${AWS_ECR_REPOSITORY_URI}:frontend-production"
+    - docker inspect --format='{{index .RepoDigests 0}}' "${AWS_ECR_REPOSITORY_URI}:backend-production" > backend.digest
+    - docker inspect --format='{{index .RepoDigests 0}}' "${AWS_ECR_REPOSITORY_URI}:frontend-production" > frontend.digest
+
+  artifacts:
+    paths:
+      - backend.digest
+      - frontend.digest
+    expire_in: 7 days
+
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: on_success
+    - when: never
