@@ -6,14 +6,14 @@
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^feature\/.*/
 
 .node-job:
-  image: node:20-alpine
+  image: node:22-alpine
   before_script:
     - corepack enable
     - corepack prepare pnpm@latest --activate
     - pnpm install --frozen-lockfile
 
 .docker-node-job:
-  image: node:20-alpine
+  image: node:22-alpine
   variables:
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: "/certs"
@@ -52,9 +52,10 @@ test:integration:
     paths:
       - .turbo/cache
   script:
-    - docker compose -f docker-compose.dev.yaml up -d db backend
+    - docker compose -f docker-compose.prod.yaml up -d db backend
+    - ls
     - pnpm run test:integration
-    - docker compose -f docker-compose.dev.yaml down
+    - docker compose -f docker-compose.prod.yaml down
 
 test:e2e:
   stage: test
@@ -67,9 +68,9 @@ test:e2e:
     paths:
       - .turbo/cache
   script:
-    - docker compose -f docker-compose.dev.yaml up -d db backend frontend
+    - docker compose -f docker-compose.prod.yaml up -d db backend frontend
     - pnpm run test:e2e
-    - docker compose -f docker-compose.dev.yaml down
+    - docker compose -f docker-compose.prod.yaml down
 
 test:security-scan:
   stage: test
