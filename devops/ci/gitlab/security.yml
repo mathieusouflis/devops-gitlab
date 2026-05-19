@@ -8,6 +8,9 @@ dependency-scan:
         - package-lock.json
         - yarn.lock
         - pnpm-lock.yaml
+  before_script:
+    - npm install -g pnpm
+    - pnpm install
   script:
-    - npm audit --audit-level=high
+    - pnpm audit --audit-level=high
   allow_failure: false
