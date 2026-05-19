@@ -1,5 +1,5 @@
 build-image-dev:
-  stage: build-image
+  stage: build-image-dev
   image: docker:27
 
   services:
