@@ -14,12 +14,12 @@ build-image-prod:
 
   before_script:
     - apk add --no-cache aws-cli
-    - test -n "$AWS_ECR_REGION"
-    - test -n "$AWS_ECR_REGISTRY"
-    - test -n "$AWS_ECR_REPOSITORY_URI"
-    - test -n "$BACKEND_PORT"
-    - test -n "$VITE_FRONTEND_PORT"
-    - test -n "$VITE_FRONTEND_API_URL"
+    - test -n "$AWS_ECR_REGION" || (echo "Missing GitLab variable: AWS_ECR_REGION" && exit 1)
+    - test -n "$AWS_ECR_REGISTRY" || (echo "Missing GitLab variable: AWS_ECR_REGISTRY" && exit 1)
+    - test -n "$AWS_ECR_REPOSITORY_URI" || (echo "Missing GitLab variable: AWS_ECR_REPOSITORY_URI" && exit 1)
+    - test -n "$BACKEND_PORT" || (echo "Missing GitLab variable: BACKEND_PORT" && exit 1)
+    - test -n "$VITE_FRONTEND_PORT" || (echo "Missing GitLab variable: VITE_FRONTEND_PORT" && exit 1)
+    - test -n "$VITE_FRONTEND_API_URL" || (echo "Missing GitLab variable: VITE_FRONTEND_API_URL" && exit 1)
     - aws ecr get-login-password --region "$AWS_ECR_REGION" | docker login --username AWS --password-stdin "$AWS_ECR_REGISTRY"
 
   script:
@@ -53,3 +53,7 @@ build-image-prod:
     - docker tag "$FRONTEND_IMAGE_SHA_TAG" "${AWS_ECR_REPOSITORY_URI}:frontend-production"
     - docker push "${AWS_ECR_REPOSITORY_URI}:backend-production"
     - docker push "${AWS_ECR_REPOSITORY_URI}:frontend-production"
+
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: never
