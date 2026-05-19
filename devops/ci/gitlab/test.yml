@@ -70,6 +70,3 @@ test:security-scan:
     - trivy fs --exit-code 1 --severity HIGH,CRITICAL --cache-dir .trivycache/ .
     - trivy config --exit-code 1 --severity HIGH,CRITICAL devops/docker/
     - echo "security-scan-completed"
-
-
-
