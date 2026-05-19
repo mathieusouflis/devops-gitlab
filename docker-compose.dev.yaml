@@ -103,7 +103,7 @@ services:
     restart: unless-stopped
     ports:
       - ${BACKEND_PORT}:${BACKEND_PORT}
-      - ${VITE_FRONTEND_PORT}:${VITE_FRONTEND_PORT}
+      - ${HTTP_PORT}:${VITE_FRONTEND_PORT}
     volumes:
       - ./devops/docker/nginx/nginx.dev.conf:/etc/nginx/templates/default.conf.template:ro
     environment:
