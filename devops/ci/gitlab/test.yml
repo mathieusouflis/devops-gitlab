@@ -28,18 +28,19 @@
     - corepack prepare pnpm@latest --activate
     - pnpm install --frozen-lockfile
 
-# test:unit:
-#   stage: test
-#   extends:
-#     - .feature-branch-rules
-#     - .node-job
-#   cache:
-#     key: "turbo-${CI_COMMIT_REF_SLUG}"
-#     paths:
-#       - .turbo/cache
-#   allow_failure: false
-#   script:
-#     - pnpm run test:unit
+test:unit:
+  stage: test
+  extends:
+    - .feature-branch-rules
+    - .node-job
+  cache:
+    key: "turbo-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .turbo/cache
+  allow_failure: false
+  script:
+    - cd backend
+    - pnpm run test:unit
 
 test:integration:
   stage: test
@@ -51,49 +52,42 @@ test:integration:
     key: "turbo-${CI_COMMIT_REF_SLUG}"
     paths:
       - .turbo/cache
-  variables:
-    VITE_FRONTEND_PORT: $CI_VITE_FRONTEND_PORT
-    VITE_FRONTEND_API_URL: $CI_VITE_FRONTEND_API_URL
-    BACKEND_PORT: $CI_BACKEND_PORT
-    POSTGRES_USER: $CI_POSTGRES_USER
-    POSTGRES_PASSWORD: $CI_POSTGRES_PASSWORD
-    POSTGRES_DB: $CI_POSTGRES_DB
-    HTTP_PORT: $CI_HTTP_PORT
   script:
     - docker compose -f docker-compose.prod.yaml up -d db backend
-    - ls
+    - cd backend
     - pnpm run test:integration
     - docker compose -f docker-compose.prod.yaml down
 
-# test:e2e:
-#   stage: test
-#   extends:
-#     - .feature-branch-rules
-#     - .docker-node-job
-#   allow_failure: true
-#   cache:
-#     key: "turbo-${CI_COMMIT_REF_SLUG}"
-#     paths:
-#       - .turbo/cache
-#   script:
-#     - docker compose -f docker-compose.prod.yaml up -d db backend frontend
-#     - pnpm run test:e2e
-#     - docker compose -f docker-compose.prod.yaml down
+test:e2e:
+  stage: test
+  extends:
+    - .feature-branch-rules
+    - .docker-node-job
+  allow_failure: true
+  cache:
+    key: "turbo-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .turbo/cache
+  script:
+    - docker compose -f docker-compose.prod.yaml up -d db backend frontend
+    - cd backend
+    - pnpm run test:e2e
+    - docker compose -f docker-compose.prod.yaml down
 
-# test:security-scan:
-#   stage: test
-#   extends: .feature-branch-rules
-#   allow_failure: true
-#   image:
-#     name: aquasec/trivy:latest
-#     entrypoint: [""]
-#   cache:
-#     key: ${CI_COMMIT_REF_SLUG}
-#     paths:
-#       - .trivycache/
-#   services:
-#     - docker:24.0.5-dind
-#   script:
-#     - trivy image --download-db-only --cache-dir .trivycache
-#     - trivy fs --exit-code 1 --severity HIGH,CRITICAL --cache-dir .trivycache/ .
-#     - trivy config --exit-code 1 --severity HIGH,CRITICAL devops/docker/
+test:security-scan:
+  stage: test
+  extends: .feature-branch-rules
+  allow_failure: true
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .trivycache/
+  services:
+    - docker:24.0.5-dind
+  script:
+    - trivy image --download-db-only --cache-dir .trivycache
+    - trivy fs --exit-code 1 --severity HIGH,CRITICAL --cache-dir .trivycache/ .
+    - trivy config --exit-code 1 --severity HIGH,CRITICAL devops/docker/
