@@ -1,0 +1,91 @@
+networks:
+  db:
+    internal: true
+  app:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
+services:
+  db:
+    image: postgres:alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - /opt/app/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  backend:
+    image: ${ECR_REPOSITORY_URI}:backend-production
+    restart: always
+    environment:
+      BACKEND_PORT: ${BACKEND_PORT}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      NODE_ENV: production
+    networks:
+      - db
+      - app
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${BACKEND_PORT}/health || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    image: ${ECR_REPOSITORY_URI}:frontend-production
+    restart: always
+    environment:
+      FRONTEND_PORT: ${VITE_FRONTEND_PORT}
+    networks:
+      - app
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:${VITE_FRONTEND_PORT}/ || exit 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: always
+    ports:
+      - ${HTTP_PORT}:80
+    volumes:
+      - /opt/app/nginx.prod.conf:/etc/nginx/templates/default.conf.template:ro
+    networks:
+      - app
+    environment:
+      BACKEND_PORT: ${BACKEND_PORT}
+      VITE_FRONTEND_PORT: ${VITE_FRONTEND_PORT}
+      NGINX_ENVSUBST_TEMPLATE_VARS: BACKEND_PORT VITE_FRONTEND_PORT
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost || exit 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
