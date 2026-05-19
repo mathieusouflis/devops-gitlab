@@ -58,6 +58,7 @@ test:integration:
     - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml up -d db backend
     - cd backend
     - pnpm run test:integration
+    - cd ..
     - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml down
 
 test:e2e:
@@ -77,6 +78,7 @@ test:e2e:
     - docker compose -f docker-compose.prod.yaml up -d db backend frontend nginx
     - cd backend
     - pnpm run test:e2e
+    - cd ..
     - docker compose -f docker-compose.prod.yaml down
 
 test:security-scan:
