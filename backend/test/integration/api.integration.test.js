@@ -7,7 +7,13 @@ function trimSlash(s) {
 
 async function findApiBase() {
   const candidates = [
-    process.env.VITE_FRONTEND_API_URL,
+    ...(process.env.VITE_FRONTEND_API_URL
+      ? [/^\d+$/.test(process.env.VITE_FRONTEND_API_URL)
+          ? `http://127.0.0.1:${process.env.VITE_FRONTEND_API_URL}`
+          : process.env.VITE_FRONTEND_API_URL.startsWith("/")
+            ? `http://127.0.0.1${process.env.VITE_FRONTEND_API_URL}`
+            : process.env.VITE_FRONTEND_API_URL]
+      : []),
     "http://127.0.0.1:3000",
     "http://127.0.0.1/api",
   ]
