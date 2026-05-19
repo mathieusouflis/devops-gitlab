@@ -1,4 +1,66 @@
 test:
   stage: test
   script:
-    - echo "Success..."
+    - cd backend
+    - pnpm run test:unit
+  artifacts:
+    when: always
+    reports:
+      junit: backend/test-results/junit.xml  
+
+test:integration:
+  stage: test
+  extends:
+    - .feature-branch-rules
+    - .docker-node-job
+  allow_failure: false
+  variables:
+    API_URL: "http://docker:${BACKEND_PORT}"
+  cache:
+    key: "turbo-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .turbo/cache
+  script:
+    - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml up -d db backend
+    - cd backend
+    - pnpm run test:integration
+    - cd ..
+    - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml down
+
+test:e2e:
+  stage: test
+  extends:
+    - .feature-branch-rules
+    - .docker-node-job
+  allow_failure: true
+  variables:
+    FRONTEND_URL: "http://docker:${HTTP_PORT}"
+    API_URL: "http://docker:${HTTP_PORT}${VITE_FRONTEND_API_URL}"
+  cache:
+    key: "turbo-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .turbo/cache
+  script:
+    - docker compose -f docker-compose.prod.yaml up -d db backend frontend nginx
+    - cd backend
+    - pnpm run test:e2e
+    - cd ..
+    - docker compose -f docker-compose.prod.yaml down
+
+test:security-scan:
+  stage: test
+  extends: .feature-branch-rules
+  allow_failure: true
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .trivycache/
+  services:
+    - docker:24.0.5-dind
+  script:
+    - trivy image --download-db-only --cache-dir .trivycache
+    - trivy fs --exit-code 1 --severity HIGH,CRITICAL --cache-dir .trivycache/ .
+    - trivy config --exit-code 1 --severity HIGH,CRITICAL devops/docker/
