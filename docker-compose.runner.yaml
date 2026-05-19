@@ -1,0 +1,12 @@
+services:
+  gitlab-runner:
+    image: gitlab/gitlab-runner:latest
+    restart: unless-stopped
+    volumes:
+      - runner-config:/etc/gitlab-runner
+      - runner-cache:/cache
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
+
+volumes:
+  runner-config:
+  runner-cache:

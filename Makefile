@@ -1,5 +1,6 @@
 # Docker Compose at repo root; loads .env when present
 COMPOSE ?= docker compose
+-include .env
 
 .PHONY: help up down down-v build rebuild ps logs logs-all restart stop start shell clean prune
 
@@ -59,3 +60,34 @@ clean: ## Stop project and remove locally built images
 prune: ## Run docker system prune on unused Docker data
 	@echo 'Running docker system prune -f'
 	docker system prune -f
+
+# GitLab Runner (local)
+RUNNER_COMPOSE ?= docker compose -f docker-compose.runner.yaml
+
+.PHONY: runner-up runner-down runner-register runner-logs runner-unregister
+
+runner-up: ## Start the local GitLab Runner
+	$(RUNNER_COMPOSE) up -d
+
+runner-down: ## Stop the local GitLab Runner
+	$(RUNNER_COMPOSE) down
+
+runner-register: ## Register this machine as a runner (uses GITLAB_RUNNER_TOKEN arg or .env)
+	$(if $(GITLAB_RUNNER_TOKEN),,$(error GITLAB_RUNNER_TOKEN not set. Pass it as an argument or add it to .env))
+	$(RUNNER_COMPOSE) run --rm gitlab-runner register \
+		--non-interactive \
+		--url https://gitlab.com \
+		--token "$(GITLAB_RUNNER_TOKEN)" \
+		--executor docker \
+		--docker-image docker:27.0.3 \
+		--docker-privileged \
+		--cache-type filesystem \
+		--cache-path /cache \
+		--description "local-$(shell hostname)"
+
+runner-unregister: ## Unregister and remove local runner config
+	$(RUNNER_COMPOSE) run --rm gitlab-runner unregister --all-runners
+	$(RUNNER_COMPOSE) down -v
+
+runner-logs: ## Follow local GitLab Runner logs
+	$(RUNNER_COMPOSE) logs -f
