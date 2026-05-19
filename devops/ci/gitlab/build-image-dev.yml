@@ -1,16 +1,26 @@
 build-image-dev:
-  stage: build-image-dev
-  image: docker:27
+  stage: publish
+  image: docker:27.0.3
 
   services:
-    - docker:27-dind
+    - docker:27.0.3-dind
 
-  allow_failure: false
+  interruptible: true
+  timeout: 20 minutes
+
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
 
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
     DOCKER_BUILDKIT: "1"
+
+  needs:
+    - build
 
   before_script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
@@ -21,19 +31,33 @@ build-image-dev:
     - export FRONTEND_IMAGE_SHA_TAG="${CI_REGISTRY_IMAGE}/frontend:${CI_COMMIT_SHA}"
     - export FRONTEND_IMAGE_SHORT_TAG="${CI_REGISTRY_IMAGE}/frontend:${CI_COMMIT_SHORT_SHA}"
     - echo "Building dev images for ${CI_COMMIT_SHA} into ${CI_REGISTRY_IMAGE}"
+    - docker pull "${CI_REGISTRY_IMAGE}/backend:develop" || true
     - |
       docker build \
+        --cache-from "${CI_REGISTRY_IMAGE}/backend:develop" \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
         --file devops/docker/backend/Dockerfile.backend.dev \
         --tag "$BACKEND_IMAGE_SHA_TAG" \
         --tag "$BACKEND_IMAGE_SHORT_TAG" \
+        --label "org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
         --label "org.opencontainers.image.revision=${CI_COMMIT_SHA}" \
+        --label "org.opencontainers.image.source=${CI_PROJECT_URL}" \
+        --label "org.opencontainers.image.version=${CI_COMMIT_SHORT_SHA}" \
+        --label "org.opencontainers.image.title=backend" \
         .
+    - docker pull "${CI_REGISTRY_IMAGE}/frontend:develop" || true
     - |
       docker build \
+        --cache-from "${CI_REGISTRY_IMAGE}/frontend:develop" \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
         --file devops/docker/frontend/Dockerfile.frontend.dev \
         --tag "$FRONTEND_IMAGE_SHA_TAG" \
         --tag "$FRONTEND_IMAGE_SHORT_TAG" \
+        --label "org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
         --label "org.opencontainers.image.revision=${CI_COMMIT_SHA}" \
+        --label "org.opencontainers.image.source=${CI_PROJECT_URL}" \
+        --label "org.opencontainers.image.version=${CI_COMMIT_SHORT_SHA}" \
+        --label "org.opencontainers.image.title=frontend" \
         .
     - docker push "$BACKEND_IMAGE_SHA_TAG"
     - docker push "$BACKEND_IMAGE_SHORT_TAG"
@@ -43,7 +67,16 @@ build-image-dev:
     - docker tag "$FRONTEND_IMAGE_SHA_TAG" "${CI_REGISTRY_IMAGE}/frontend:develop"
     - docker push "${CI_REGISTRY_IMAGE}/backend:develop"
     - docker push "${CI_REGISTRY_IMAGE}/frontend:develop"
+    - docker inspect --format='{{index .RepoDigests 0}}' "${CI_REGISTRY_IMAGE}/backend:develop" > backend.digest
+    - docker inspect --format='{{index .RepoDigests 0}}' "${CI_REGISTRY_IMAGE}/frontend:develop" > frontend.digest
+
+  artifacts:
+    paths:
+      - backend.digest
+      - frontend.digest
+    expire_in: 7 days
 
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
+      when: on_success
     - when: never
