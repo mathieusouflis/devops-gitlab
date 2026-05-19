@@ -12,8 +12,7 @@ stages:
   - lint
   - test
   - build
-  - build-image-dev
-  - build-image-prod
+  - publish
   - deploy
 
 include:
