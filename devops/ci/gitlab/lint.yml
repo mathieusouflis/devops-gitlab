@@ -26,7 +26,8 @@ lint:compose:
   services:
     - docker:24.0.5-dind
   script:
-    - find . -name "docker-compose*.yml" -o -name "docker-compose*.yaml" | xargs -I {} docker compose -f {} config -q
+    - env
+    - 'find . -name ''docker-compose*.yml'' -o -name ''docker-compose*.yaml'' | xargs -I {} sh -c ''docker compose -f {} config -q || (echo "Error: Failed to validate {}" && exit 1)'''
 
 lint:hadolint:
   stage: lint
