@@ -33,6 +33,12 @@
       "persistent": true
     },
     "test": {
+    },
+    "test:unit": {
+    },
+    "test:e2e": {
+    },
+    "test:integration": {
     }
   }
 }
