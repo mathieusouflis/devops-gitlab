@@ -19,7 +19,7 @@ async function tryJsonArray(url) {
 
 async function findFrontendBase() {
   const candidates = [
-    process.env.E2E_BASE_URL,
+    process.env.VITE_FRONTEND_PORT ? `http://127.0.0.1:${process.env.VITE_FRONTEND_PORT}` : null,
     "http://127.0.0.1:8088",
     "http://127.0.0.1:5173",
     "http://127.0.0.1",
