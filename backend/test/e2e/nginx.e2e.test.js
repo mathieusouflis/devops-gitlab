@@ -1,5 +1,11 @@
 const { describe, test, before } = require("node:test");
 const assert = require("node:assert/strict");
+const dotenv = require("dotenv");
+
+dotenv.config({
+  path: process.cwd() + "/../.env"
+});
+
 
 function trimSlash(s) {
   return s.replace(/\/$/, "");
@@ -19,10 +25,7 @@ async function tryJsonArray(url) {
 
 async function findFrontendBase() {
   const candidates = [
-    process.env.VITE_FRONTEND_PORT ? `http://127.0.0.1:${process.env.VITE_FRONTEND_PORT}` : null,
-    "http://127.0.0.1:8088",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1",
+    process.env.HTTP_PORT ? `http://127.0.0.1:${process.env.HTTP_PORT}` : null,
   ]
     .filter(Boolean)
     .map(trimSlash);
@@ -41,12 +44,13 @@ async function findFrontendBase() {
 
 async function findApiBase(frontendBase) {
   const apiCandidates = [
-    process.env.E2E_API_URL,
-    process.env.API_URL,
-    `${frontendBase}/api/v1`,
-    `${frontendBase}/api`,
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1/api",
+    ...(process.env.VITE_FRONTEND_API_URL
+      ? [/^\d+$/.test(process.env.VITE_FRONTEND_API_URL)
+          ? `http://127.0.0.1:${process.env.VITE_FRONTEND_API_URL}`
+          : process.env.VITE_FRONTEND_API_URL.startsWith("/")
+            ? `http://127.0.0.1${process.env.VITE_FRONTEND_API_URL}`
+            : process.env.VITE_FRONTEND_API_URL]
+      : []),
   ]
     .filter(Boolean)
     .map(trimSlash);

@@ -1,12 +1,16 @@
 const { describe, test, before } = require("node:test");
 const assert = require("node:assert/strict");
+const dotenv = require("dotenv");
+
+dotenv.config({
+  path: process.cwd() + "/../.env"
+});
 
 function trimSlash(s) {
   return s.replace(/\/$/, "");
 }
 
 async function findApiBase() {
-  console.log({ VITE_FRONTEND_API_URL: process.env.VITE_FRONTEND_API_URL })
   const candidates = [
     ...(process.env.VITE_FRONTEND_API_URL
       ? [/^\d+$/.test(process.env.VITE_FRONTEND_API_URL)
@@ -15,8 +19,6 @@ async function findApiBase() {
             ? `http://127.0.0.1${process.env.VITE_FRONTEND_API_URL}`
             : process.env.VITE_FRONTEND_API_URL]
       : []),
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1/api",
   ]
     .filter(Boolean)
     .map(trimSlash);

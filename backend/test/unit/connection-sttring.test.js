@@ -1,6 +1,11 @@
 const { describe, test } = require("node:test");
 const assert = require("node:assert/strict");
 const { connectionString } = require("../../db");
+const dotenv = require("dotenv");
+
+dotenv.config({
+  path: process.cwd() + "/../.env"
+});
 
 describe("connectionString", () => {
   test("retourne undefined sans DATABASE_URL", () => {
