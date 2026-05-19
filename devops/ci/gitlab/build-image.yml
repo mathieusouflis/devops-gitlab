@@ -13,27 +13,52 @@ build-image:
     DOCKER_BUILDKIT: "1"
     BUILD_COMMIT_SHA: $CI_COMMIT_SHA
     BUILD_COMMIT_SHORT_SHA: $CI_COMMIT_SHORT_SHA
-    BUILD_REGISTRY_IMAGE: $CI_REGISTRY_IMAGE
-    BACKEND_IMAGE_SHA_TAG: $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
-    BACKEND_IMAGE_SHORT_TAG: $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA
-    FRONTEND_IMAGE_SHA_TAG: $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA
-    FRONTEND_IMAGE_SHORT_TAG: $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA
+    DEV_REGISTRY_IMAGE: $CI_REGISTRY_IMAGE
 
   before_script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+    - |
+      if [ "$CI_COMMIT_BRANCH" = "develop" ]; then
+        export TARGET_ENV="dev"
+        export TARGET_REGISTRY_IMAGE="$DEV_REGISTRY_IMAGE"
+        export BACKEND_DOCKERFILE="devops/docker/backend/Dockerfile.backend.dev"
+        export FRONTEND_DOCKERFILE="devops/docker/frontend/Dockerfile.frontend.dev"
+        export TARGET_STABLE_TAG="develop"
+        echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+      elif [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
+        export TARGET_ENV="prod"
+        export TARGET_REGISTRY_IMAGE="$AWS_REGISTRY_IMAGE"
+        export BACKEND_DOCKERFILE="devops/docker/backend/Dockerfile.backend.prod"
+        export FRONTEND_DOCKERFILE="devops/docker/frontend/Dockerfile.frontend.prod"
+        export TARGET_STABLE_TAG="main"
+        apk add --no-cache aws-cli
+        aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login "$AWS_REGISTRY_HOST" --username AWS --password-stdin
+      else
+        echo "Unsupported branch for image build: $CI_COMMIT_BRANCH"
+        exit 1
+      fi
+      echo "TARGET_ENV=$TARGET_ENV" >> build-image.env
+      echo "TARGET_REGISTRY_IMAGE=$TARGET_REGISTRY_IMAGE" >> build-image.env
+      echo "BACKEND_DOCKERFILE=$BACKEND_DOCKERFILE" >> build-image.env
+      echo "FRONTEND_DOCKERFILE=$FRONTEND_DOCKERFILE" >> build-image.env
+      echo "TARGET_STABLE_TAG=$TARGET_STABLE_TAG" >> build-image.env
 
   script:
-    - echo "Building backend and frontend images for ${BUILD_COMMIT_SHA} into ${BUILD_REGISTRY_IMAGE}"
+    - . ./build-image.env
+    - export BACKEND_IMAGE_SHA_TAG="${TARGET_REGISTRY_IMAGE}/backend:${BUILD_COMMIT_SHA}"
+    - export BACKEND_IMAGE_SHORT_TAG="${TARGET_REGISTRY_IMAGE}/backend:${BUILD_COMMIT_SHORT_SHA}"
+    - export FRONTEND_IMAGE_SHA_TAG="${TARGET_REGISTRY_IMAGE}/frontend:${BUILD_COMMIT_SHA}"
+    - export FRONTEND_IMAGE_SHORT_TAG="${TARGET_REGISTRY_IMAGE}/frontend:${BUILD_COMMIT_SHORT_SHA}"
+    - echo "Building ${TARGET_ENV} backend and frontend images for ${BUILD_COMMIT_SHA} into ${TARGET_REGISTRY_IMAGE}"
     - |
       docker build \
-        --file devops/docker/backend/Dockerfile.backend.prod \
+        --file "$BACKEND_DOCKERFILE" \
         --tag "$BACKEND_IMAGE_SHA_TAG" \
         --tag "$BACKEND_IMAGE_SHORT_TAG" \
         --label "org.opencontainers.image.revision=${BUILD_COMMIT_SHA}" \
         .
     - |
       docker build \
-        --file devops/docker/frontend/Dockerfile.frontend.prod \
+        --file "$FRONTEND_DOCKERFILE" \
         --tag "$FRONTEND_IMAGE_SHA_TAG" \
         --tag "$FRONTEND_IMAGE_SHORT_TAG" \
         --label "org.opencontainers.image.revision=${BUILD_COMMIT_SHA}" \
@@ -43,14 +68,12 @@ build-image:
     - docker push "$FRONTEND_IMAGE_SHA_TAG"
     - docker push "$FRONTEND_IMAGE_SHORT_TAG"
     - |
-      if [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
-        docker tag "$BACKEND_IMAGE_SHA_TAG" "${BUILD_REGISTRY_IMAGE}/backend:main"
-        docker tag "$FRONTEND_IMAGE_SHA_TAG" "${BUILD_REGISTRY_IMAGE}/frontend:main"
-        docker push "${BUILD_REGISTRY_IMAGE}/backend:main"
-        docker push "${BUILD_REGISTRY_IMAGE}/frontend:main"
-      elif [ "$CI_COMMIT_BRANCH" = "develop" ]; then
-        docker tag "$BACKEND_IMAGE_SHA_TAG" "${BUILD_REGISTRY_IMAGE}/backend:develop"
-        docker tag "$FRONTEND_IMAGE_SHA_TAG" "${BUILD_REGISTRY_IMAGE}/frontend:develop"
-        docker push "${BUILD_REGISTRY_IMAGE}/backend:develop"
-        docker push "${BUILD_REGISTRY_IMAGE}/frontend:develop"
-      fi
+      docker tag "$BACKEND_IMAGE_SHA_TAG" "${TARGET_REGISTRY_IMAGE}/backend:${TARGET_STABLE_TAG}"
+      docker tag "$FRONTEND_IMAGE_SHA_TAG" "${TARGET_REGISTRY_IMAGE}/frontend:${TARGET_STABLE_TAG}"
+      docker push "${TARGET_REGISTRY_IMAGE}/backend:${TARGET_STABLE_TAG}"
+      docker push "${TARGET_REGISTRY_IMAGE}/frontend:${TARGET_STABLE_TAG}"
+
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: never
