@@ -1,4 +1,77 @@
-test:
+.feature-branch-rules:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^feature\/.*/
+
+.node-job:
+  image: node:alpine
+  before_script:
+    - npm install -g pnpm
+    - pnpm install
+
+test:unit:
   stage: test
+  extends:
+    - .feature-branch-rules
+    - .node-job
+  allow_failure: false
   script:
-    - echo "Success..."
+    - echo "Running unit tests..."
+    - pnpm run test:unit
+    - echo "unit-tests-completed"
+
+test:integration:
+  stage: test
+  extends:
+    - .feature-branch-rules
+  allow_failure: false
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  script:
+    - echo "Running integration tests..."
+    - docker compose up -d database redis backend
+    - docker compose run --rm backend pnpm run test:integration
+    - docker compose down
+    - echo "integration-tests-completed"
+
+test:e2e:
+  stage: test
+  extends:
+    - .feature-branch-rules
+    - .node-job
+  allow_failure: true
+  image:
+    - mcr.microsoft.com/playwright:v1.40.0-jammy
+  before_script:
+    - npm install -g pnpm
+    - pnpm install
+  script:
+    - echo "Running end-to-end tests..."
+    - pnpm run test:e2e
+    - echo "e2e-tests-completed"
+
+test:security-scan:
+  stage: test
+  extends: .feature-branch-rules
+  allow_failure: true
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .trivycache/
+  services:
+    - docker:24.0.5-dind
+  script:
+    - echo "Running security scan..."
+    - trivy image --download-db-only --cache-dir .trivycache
+    - trivy fs --exit-code 1 --severity HIGH,CRITICAL --cache-dir .trivycache/ .
+    - trivy config --exit-code 1 --severity HIGH,CRITICAL devops/docker/
+    - echo "security-scan-completed"
+
+
+
