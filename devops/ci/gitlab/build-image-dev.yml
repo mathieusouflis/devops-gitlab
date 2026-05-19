@@ -1,0 +1,49 @@
+build-image-dev:
+  stage: build-image-dev
+  image: docker:27
+
+  services:
+    - docker:27-dind
+
+  allow_failure: false
+
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_BUILDKIT: "1"
+
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+
+  script:
+    - export BACKEND_IMAGE_SHA_TAG="${CI_REGISTRY_IMAGE}/backend:${CI_COMMIT_SHA}"
+    - export BACKEND_IMAGE_SHORT_TAG="${CI_REGISTRY_IMAGE}/backend:${CI_COMMIT_SHORT_SHA}"
+    - export FRONTEND_IMAGE_SHA_TAG="${CI_REGISTRY_IMAGE}/frontend:${CI_COMMIT_SHA}"
+    - export FRONTEND_IMAGE_SHORT_TAG="${CI_REGISTRY_IMAGE}/frontend:${CI_COMMIT_SHORT_SHA}"
+    - echo "Building dev images for ${CI_COMMIT_SHA} into ${CI_REGISTRY_IMAGE}"
+    - |
+      docker build \
+        --file devops/docker/backend/Dockerfile.backend.dev \
+        --tag "$BACKEND_IMAGE_SHA_TAG" \
+        --tag "$BACKEND_IMAGE_SHORT_TAG" \
+        --label "org.opencontainers.image.revision=${CI_COMMIT_SHA}" \
+        .
+    - |
+      docker build \
+        --file devops/docker/frontend/Dockerfile.frontend.dev \
+        --tag "$FRONTEND_IMAGE_SHA_TAG" \
+        --tag "$FRONTEND_IMAGE_SHORT_TAG" \
+        --label "org.opencontainers.image.revision=${CI_COMMIT_SHA}" \
+        .
+    - docker push "$BACKEND_IMAGE_SHA_TAG"
+    - docker push "$BACKEND_IMAGE_SHORT_TAG"
+    - docker push "$FRONTEND_IMAGE_SHA_TAG"
+    - docker push "$FRONTEND_IMAGE_SHORT_TAG"
+    - docker tag "$BACKEND_IMAGE_SHA_TAG" "${CI_REGISTRY_IMAGE}/backend:develop"
+    - docker tag "$FRONTEND_IMAGE_SHA_TAG" "${CI_REGISTRY_IMAGE}/frontend:develop"
+    - docker push "${CI_REGISTRY_IMAGE}/backend:develop"
+    - docker push "${CI_REGISTRY_IMAGE}/frontend:develop"
+
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - when: never

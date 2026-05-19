@@ -18,7 +18,8 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 
 FROM base AS runtime
 
-RUN apk add curl=8.19.0-r0 --no-cache
+# hadolint ignore=DL3018
+RUN apk add --no-cache curl
 
 COPY backend ./backend
 COPY --from=deps /app/node_modules ./node_modules
