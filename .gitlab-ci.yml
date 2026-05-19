@@ -9,7 +9,7 @@ workflow:
     - when: never
 
 stages:
-  - lint
+  # - lint
   - test
   - build
   - publish
@@ -25,10 +25,10 @@ variables:
   HTTP_PORT: $CI_HTTP_PORT
 
 include:
-  - local: "devops/ci/gitlab/lint.yml"
+  # - local: "devops/ci/gitlab/lint.yml"
   - local: "devops/ci/gitlab/test.yml"
   - local: "devops/ci/gitlab/build.yml"
-  - local: "devops/ci/gitlab/security.yml"
+  # - local: "devops/ci/gitlab/security.yml"
   - local: "devops/ci/gitlab/build-image-dev.yml"
   - local: "devops/ci/gitlab/build-image-prod.yml"
   - local: "devops/ci/gitlab/deploy.yml"

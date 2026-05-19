@@ -6,6 +6,7 @@ function trimSlash(s) {
 }
 
 async function findApiBase() {
+  console.log({ VITE_FRONTEND_API_URL: process.env.VITE_FRONTEND_API_URL })
   const candidates = [
     ...(process.env.VITE_FRONTEND_API_URL
       ? [/^\d+$/.test(process.env.VITE_FRONTEND_API_URL)
