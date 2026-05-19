@@ -47,3 +47,7 @@ build-image-prod:
     - docker tag "$FRONTEND_IMAGE_SHA_TAG" "${AWS_ECR_REPOSITORY_URI}:frontend-production"
     - docker push "${AWS_ECR_REPOSITORY_URI}:backend-production"
     - docker push "${AWS_ECR_REPOSITORY_URI}:frontend-production"
+
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - when: never
