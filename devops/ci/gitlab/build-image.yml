@@ -1,0 +1,61 @@
+build-image:
+  stage: build-image
+  image: docker:27
+
+  services:
+    - docker:27-dind
+
+  allow_failure: false
+
+  needs:
+    - job: lint
+    - job: test
+
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_BUILDKIT: "1"
+    BUILD_COMMIT_SHA: $CI_COMMIT_SHA
+    BUILD_COMMIT_SHORT_SHA: $CI_COMMIT_SHORT_SHA
+    BUILD_REGISTRY_IMAGE: $CI_REGISTRY_IMAGE
+    BACKEND_IMAGE_SHA_TAG: $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
+    BACKEND_IMAGE_SHORT_TAG: $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA
+    FRONTEND_IMAGE_SHA_TAG: $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA
+    FRONTEND_IMAGE_SHORT_TAG: $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA
+
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+
+  script:
+    - echo "Building backend and frontend images for ${BUILD_COMMIT_SHA} into ${BUILD_REGISTRY_IMAGE}"
+    - docker build --file devops/docker/backend/Dockerfile.backend.prod --tag "$BACKEND_IMAGE_SHA_TAG" --tag "$BACKEND_IMAGE_SHORT_TAG" --label "org.opencontainers.image.revision=${BUILD_COMMIT_SHA}" .
+    - docker build --file devops/docker/frontend/Dockerfile.frontend.prod --tag "$FRONTEND_IMAGE_SHA_TAG" --tag "$FRONTEND_IMAGE_SHORT_TAG" --label "org.opencontainers.image.revision=${BUILD_COMMIT_SHA}" .
+    - docker push "$BACKEND_IMAGE_SHA_TAG"
+    - docker push "$BACKEND_IMAGE_SHORT_TAG"
+    - docker push "$FRONTEND_IMAGE_SHA_TAG"
+    - docker push "$FRONTEND_IMAGE_SHORT_TAG"
+    - |
+      if [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
+        docker tag "$BACKEND_IMAGE_SHA_TAG" "${BUILD_REGISTRY_IMAGE}/backend:main"
+        docker tag "$FRONTEND_IMAGE_SHA_TAG" "${BUILD_REGISTRY_IMAGE}/frontend:main"
+        docker push "${BUILD_REGISTRY_IMAGE}/backend:main"
+        docker push "${BUILD_REGISTRY_IMAGE}/frontend:main"
+      elif [ "$CI_COMMIT_BRANCH" = "develop" ]; then
+        docker tag "$BACKEND_IMAGE_SHA_TAG" "${BUILD_REGISTRY_IMAGE}/backend:develop"
+        docker tag "$FRONTEND_IMAGE_SHA_TAG" "${BUILD_REGISTRY_IMAGE}/frontend:develop"
+        docker push "${BUILD_REGISTRY_IMAGE}/backend:develop"
+        docker push "${BUILD_REGISTRY_IMAGE}/frontend:develop"
+      fi
+
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - changes:
+        - "backend/**/*"
+        - "frontend/**/*"
+        - "package.json"
+        - "pnpm-lock.yaml"
+        - "pnpm-workspace.yaml"
+        - ".dockerignore"
+        - "devops/docker/**/*"
+    - when: never
