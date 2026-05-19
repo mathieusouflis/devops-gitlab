@@ -1,13 +1,36 @@
 const { describe, test, before } = require("node:test");
 const assert = require("node:assert/strict");
 
-const apiBase = (process.env.API_URL || "http://127.0.0.1:3000").replace(
-  /\/$/,
-  "",
-);
+function trimSlash(s) {
+  return s.replace(/\/$/, "");
+}
+
+async function findApiBase() {
+  const candidates = [
+    process.env.API_URL,
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1/api",
+  ]
+    .filter(Boolean)
+    .map(trimSlash);
+
+  for (const base of candidates) {
+    try {
+      const res = await fetch(`${base}/users`);
+      if (res.status !== 200) continue;
+      const data = await res.json();
+      if (Array.isArray(data)) return base;
+    } catch {}
+  }
+
+  throw new Error(`Aucune API joignable. Testé: ${candidates.join(", ")}`);
+}
+
+let apiBase = "";
 
 describe("API — intégration", () => {
   before(async () => {
+    apiBase = await findApiBase();
     const res = await fetch(`${apiBase}/`);
     assert.equal(res.status, 200);
     const body = await res.json();
