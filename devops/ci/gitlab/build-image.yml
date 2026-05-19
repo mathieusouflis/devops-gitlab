@@ -24,8 +24,10 @@ build-image:
 
   script:
     - echo "Building backend and frontend images for ${BUILD_COMMIT_SHA} into ${BUILD_REGISTRY_IMAGE}"
-    - docker build --file devops/docker/backend/Dockerfile.backend.prod --tag "$BACKEND_IMAGE_SHA_TAG" --tag "$BACKEND_IMAGE_SHORT_TAG" --label "org.opencontainers.image.revision=${BUILD_COMMIT_SHA}" .
-    - docker build --file devops/docker/frontend/Dockerfile.frontend.prod --tag "$FRONTEND_IMAGE_SHA_TAG" --tag "$FRONTEND_IMAGE_SHORT_TAG" --label "org.opencontainers.image.revision=${BUILD_COMMIT_SHA}" .
+    - docker build --file devops/docker/backend/Dockerfile.backend.prod --tag "$BACKEND_IMAGE_SHA_TAG" \
+      --tag "$BACKEND_IMAGE_SHORT_TAG" --label "org.opencontainers.image.revision=${BUILD_COMMIT_SHA}" .
+    - docker build --file devops/docker/frontend/Dockerfile.frontend.prod --tag "$FRONTEND_IMAGE_SHA_TAG" \
+      --tag "$FRONTEND_IMAGE_SHORT_TAG" --label "org.opencontainers.image.revision=${BUILD_COMMIT_SHA}" .
     - docker push "$BACKEND_IMAGE_SHA_TAG"
     - docker push "$BACKEND_IMAGE_SHORT_TAG"
     - docker push "$FRONTEND_IMAGE_SHA_TAG"
