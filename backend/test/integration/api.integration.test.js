@@ -29,6 +29,7 @@ async function findApiBase() {
       const res = await fetch(`${base}/users`);
       if (res.status !== 200) continue;
       const data = await res.json();
+      console.log(data)
       if (Array.isArray(data)) return base;
     } catch {}
   }
