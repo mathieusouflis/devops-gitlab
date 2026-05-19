@@ -51,6 +51,14 @@ test:integration:
     key: "turbo-${CI_COMMIT_REF_SLUG}"
     paths:
       - .turbo/cache
+  variables:
+    VITE_FRONTEND_PORT: $CI_VITE_FRONTEND_PORT
+    VITE_FRONTEND_API_URL: $CI_VITE_FRONTEND_API_URL
+    BACKEND_PORT: $CI_BACKEND_PORT
+    POSTGRES_USER: $CI_POSTGRES_USER
+    POSTGRES_PASSWORD: $CI_POSTGRES_PASSWORD
+    POSTGRES_DB: $CI_POSTGRES_DB
+    HTTP_PORT: $CI_HTTP_PORT
   script:
     - docker compose -f docker-compose.prod.yaml up -d db backend
     - ls
