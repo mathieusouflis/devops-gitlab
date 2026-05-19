@@ -36,7 +36,7 @@ test:integration:
     - docker:24.0.5-dind
   script:
     - echo "Running integration tests..."
-    - docker compose -f docker-compose.dev.yaml up -d database redis backend
+    - docker compose -f docker-compose.dev.yaml up -d db backend
     - docker compose -f docker-compose.dev.yaml run --rm backend pnpm run test:integration
     - docker compose -f docker-compose.dev.yaml down
     - echo "integration-tests-completed"
@@ -45,18 +45,15 @@ test:e2e:
   stage: test
   extends:
     - .feature-branch-rules
-    - .node-job
   allow_failure: true
-  before_script:
-    - npm install -g pnpm
-    - pnpm install
-  cache:
-    key: "turbo-${CI_COMMIT_REF_SLUG}"
-    paths:
-      - .turbo/cache
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
   script:
     - echo "Running end-to-end tests..."
-    - pnpm run test:e2e
+    - docker compose -f docker-compose.dev.yaml up -d db backend frontend
+    - docker compose -f docker-compose.dev.yaml exec -T backend sh -c "npm install -g pnpm && pnpm install && pnpm run test:e2e"
+    - docker compose -f docker-compose.dev.yaml down
     - echo "e2e-tests-completed"
 
 test:security-scan:
