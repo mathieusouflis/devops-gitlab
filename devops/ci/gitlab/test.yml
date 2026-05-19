@@ -16,6 +16,10 @@ test:unit:
   extends:
     - .feature-branch-rules
     - .node-job
+  cache:
+    key: "turbo-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .turbo/cache
   allow_failure: false
   script:
     - echo "Running unit tests..."
@@ -46,6 +50,10 @@ test:e2e:
   before_script:
     - npm install -g pnpm
     - pnpm install
+  cache:
+    key: "turbo-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .turbo/cache
   script:
     - echo "Running end-to-end tests..."
     - pnpm run test:e2e
