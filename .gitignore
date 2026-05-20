@@ -57,3 +57,4 @@ temp/
 .terraform/
 .terraform.lock.hcl
 *.secrets.tfvars
+.devenv

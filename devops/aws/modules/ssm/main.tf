@@ -30,12 +30,10 @@ resource "aws_ssm_parameter" "backend_port" {
   value = var.backend_port
 }
 
-# TODO(ALB): replace var.cors_origin with "http://${module.alb.dns_name}" once the ALB module exists
-#            and remove cors_origin from this module's variables + callers
 resource "aws_ssm_parameter" "cors_origin" {
   name  = "/group1/prod/CORS_ORIGIN"
   type  = "String"
-  value = var.cors_origin
+  value = "http://${var.alb_dns_name}"
 }
 
 resource "aws_ssm_parameter" "vite_frontend_port" {
@@ -50,10 +48,8 @@ resource "aws_ssm_parameter" "http_port" {
   value = var.http_port
 }
 
-# TODO(ALB): replace var.vite_frontend_api_url with "http://${module.alb.dns_name}/api" once the ALB module exists
-#            and remove vite_frontend_api_url from this module's variables + callers
 resource "aws_ssm_parameter" "vite_frontend_api_url" {
   name  = "/group1/prod/VITE_FRONTEND_API_URL"
   type  = "String"
-  value = var.vite_frontend_api_url
+  value = "http://${var.alb_dns_name}/api"
 }

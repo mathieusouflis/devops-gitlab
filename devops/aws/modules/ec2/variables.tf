@@ -32,3 +32,8 @@ variable "ecr_read_instance_profile_name" {
   description = "IAM instance profile name to attach to EC2 instances"
   type        = string
 }
+
+variable "target_group_arn" {
+  description = "ARN of the ALB target group to attach the ASG to"
+  type        = string
+}
