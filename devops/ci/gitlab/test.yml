@@ -15,10 +15,8 @@
 .docker-node-job:
   image: node:22-alpine
   variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: "/certs"
-    DOCKER_CERT_PATH: "/certs/client"
-    DOCKER_TLS_VERIFY: "1"
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
   services:
     - name: docker:24.0.5-dind
       alias: docker
