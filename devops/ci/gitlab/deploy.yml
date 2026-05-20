@@ -10,7 +10,7 @@ deploy-prod:
     name: production
 
   needs:
-    - publish-image
+    - publish-prod
 
   variables:
     AWS_ASG_NAME: $CI_AWS_ASG_NAME
