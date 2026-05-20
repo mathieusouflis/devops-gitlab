@@ -15,7 +15,7 @@
 .docker-node-job:
   image: node:22-alpine
   variables:
-    DOCKER_HOST: tcp://docker:2376
+    DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
     DOCKER_TLS_VERIFY: "0"
   services:
