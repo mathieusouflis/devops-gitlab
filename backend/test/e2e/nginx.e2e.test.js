@@ -27,7 +27,11 @@ async function tryJsonArray(url) {
 async function findFrontendBase() {
   const candidates = [
     process.env.FRONTEND_URL,
+    process.env.E2E_BASE_URL,
+    "http://nginx",
     process.env.HTTP_PORT ? `http://127.0.0.1:${process.env.HTTP_PORT}` : null,
+    "http://127.0.0.1:8088",
+    "http://127.0.0.1"
   ]
     .filter(Boolean)
     .map(trimSlash);
@@ -38,7 +42,9 @@ async function findFrontendBase() {
       if (res.status !== 200) continue;
       const html = await res.text();
       if (/id="root"/i.test(html)) return base;
-    } catch {}
+    } catch (err) {
+
+    }
   }
 
   throw new Error(`Aucun frontend joignable. Testé: ${candidates.join(", ")}`);
