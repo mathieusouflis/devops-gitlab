@@ -89,8 +89,7 @@ publish-staging:
   stage: publish
 
   rules:
-    - if: $CI_COMMIT_BRANCH != "main"
-    - when: never
+    - if: $CI_COMMIT_BRANCH == "staging"
   environment: staging
   extends: .build-image
 
