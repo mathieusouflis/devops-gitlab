@@ -53,12 +53,6 @@ variable "app_backend_port" {
   type        = string
 }
 
-# TODO(ALB): remove this variable once the ALB module exists — value will be "http://${module.alb.dns_name}"
-variable "app_cors_origin" {
-  description = "Allowed CORS origin for the backend (use * or http://alb-dns once ALB exists)"
-  type        = string
-}
-
 variable "app_vite_frontend_port" {
   description = "Port the frontend container listens on"
   type        = string
@@ -68,10 +62,4 @@ variable "app_http_port" {
   description = "Host port nginx binds to"
   type        = string
   default     = "80"
-}
-
-# TODO(ALB): remove this variable once the ALB module exists — value will be "http://${module.alb.dns_name}/api"
-variable "app_vite_frontend_api_url" {
-  description = "API base URL baked into the frontend image at CI time — set to match CORS_ORIGIN"
-  type        = string
 }
