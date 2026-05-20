@@ -21,11 +21,7 @@ services:
     networks:
       - db
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}",
-        ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 3s
       timeout: 3s
       retries: 3
@@ -41,7 +37,7 @@ services:
     environment:
       BACKEND_PORT: ${BACKEND_PORT}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      CORS_ORIGIN: ${CORS_ORIGIN}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
       NODE_ENV: production
     networks:
       - db
@@ -98,7 +94,7 @@ services:
     environment:
       BACKEND_PORT: ${BACKEND_PORT}
       VITE_FRONTEND_PORT: ${VITE_FRONTEND_PORT}
-      NGINX_ENVSUBST_TEMPLATE_VARS: BACKEND_PORT VITE_FRONTEND_PORT
+      NGINX_ENVSUBST_TEMPLATE_VARS: "$BACKEND_PORT $VITE_FRONTEND_PORT"
     depends_on:
       backend:
         condition: service_healthy
