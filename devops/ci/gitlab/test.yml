@@ -15,7 +15,7 @@
 .docker-node-job:
   image: node:22-alpine
   variables:
-    DOCKER_HOST: tcp://docker:2375
+    DOCKER_HOST: tcp://localhost:2375
   services:
     - docker:24.0.5-dind
   before_script:
