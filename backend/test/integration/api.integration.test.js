@@ -1,5 +1,11 @@
 const { describe, test, before } = require("node:test");
 const assert = require("node:assert/strict");
+const dotenv = require("dotenv");
+
+dotenv.config({
+  path: process.cwd() + "/../.env",
+  override: false
+});
 
 function trimSlash(s) {
   return s.replace(/\/$/, "");
@@ -8,8 +14,7 @@ function trimSlash(s) {
 async function findApiBase() {
   const candidates = [
     process.env.API_URL,
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1/api",
+    `http://127.0.0.1:${process.env.BACKEND_PORT || "3000"}`,
   ]
     .filter(Boolean)
     .map(trimSlash);

@@ -1,0 +1,10 @@
+# CI-only compose override.
+# Merges with docker-compose.prod.yaml:
+#   docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml ...
+#
+# Publishes service ports to the DinD container's interface so the test
+# runner (node:22-alpine) can reach them at http://docker:<port>.
+services:
+  backend:
+    ports:
+      - "${BACKEND_PORT:-3000}:${BACKEND_PORT:-3000}"
