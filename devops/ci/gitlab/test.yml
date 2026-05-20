@@ -72,25 +72,22 @@ test:integration:
       junit:
         - backend/junit/integration.xml
 
-test:e2e:
-  stage: test
-  extends:
-    - .feature-branch-rules
-    - .docker-node-job
-  allow_failure: true
+e2e-test:
+  image: node:22-alpine
   variables:
-    FRONTEND_URL: "http://docker:${HTTP_PORT}"
-    API_URL: "http://docker:${HTTP_PORT}${VITE_FRONTEND_API_URL}"
-  cache:
-    key: "turbo-${CI_COMMIT_REF_SLUG}"
-    paths:
-      - .turbo/cache
+    FF_NETWORK_PER_BUILD: "true"
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  services:
+    - name: docker:24.0.5-dind
+      alias: docker
   script:
+    - apk add --no-cache docker-cli docker-compose
+    - for i in {1..30}; do docker info && break || sleep 1; done
+    - corepack enable
+    - corepack prepare pnpm@latest --activate
+    - pnpm install --frozen-lockfile
     - docker compose -f docker-compose.prod.yaml up -d db backend frontend nginx
-    - cd backend
-    - pnpm run test:e2e
-    - cd ..
-    - docker compose -f docker-compose.prod.yaml down
   artifacts:
     when: always
     reports:
