@@ -57,8 +57,8 @@ test:integration:
       - .turbo/cache
   script:
     #docker comand with multiple compose files to start only db and backend services
-    - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml build db backend
     - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml up -d db backend
+    - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml exec -T backend sh -c "sleep 5"
     - cd backend
     - pnpm run test:integration
     - cd ..
