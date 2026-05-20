@@ -15,15 +15,14 @@ data "aws_ami" "debian" {
 }
 
 locals {
-  name_suffix = var.environment
-  env_label   = var.environment == "prod" ? "production" : var.environment
+  env_label   = var.environment
   ssm_prefix  = "/group1/${var.environment}"
 }
 
 # Security Group for EC2 instances
 resource "aws_security_group" "ec2_prod" {
-  name        = "tsg-ec2-${local.name_suffix}"
-  description = "${upper(local.name_suffix)} EC2 - HTTP from VPC (ALB), all outbound"
+  name        = "tsg-ec2-${var.environment}"
+  description = "${upper(var.environment)} EC2 - HTTP from VPC (ALB), all outbound"
   vpc_id      = var.vpc_id
 
   ingress {
@@ -42,14 +41,14 @@ resource "aws_security_group" "ec2_prod" {
   }
 
   tags = {
-    Name = "tsg-ec2-${local.name_suffix}"
+    Name = "tsg-ec2-${var.environment}"
     Env  = local.env_label
   }
 }
 
 # Launch Template
 resource "aws_launch_template" "prod" {
-  name_prefix   = "lt-${local.name_suffix}-"
+  name_prefix   = "lt-${var.environment}-"
   image_id      = data.aws_ami.debian.id
   instance_type = "t3.micro"
 
@@ -79,7 +78,7 @@ resource "aws_launch_template" "prod" {
   tag_specifications {
     resource_type = "instance"
     tags = {
-      Name = "ec2-${local.name_suffix}"
+      Name = "ec2-${var.environment}"
       Env  = local.env_label
     }
   }
@@ -87,7 +86,7 @@ resource "aws_launch_template" "prod" {
   tag_specifications {
     resource_type = "volume"
     tags = {
-      Name = "ec2-${local.name_suffix}-volume"
+      Name = "ec2-${var.environment}-volume"
       Env  = local.env_label
     }
   }
@@ -99,7 +98,7 @@ resource "aws_launch_template" "prod" {
 
 # Auto Scaling Group
 resource "aws_autoscaling_group" "prod" {
-  name                = "asg-${local.name_suffix}"
+  name                = "asg-${var.environment}"
   desired_capacity    = 2
   min_size            = 1
   max_size            = 2
@@ -113,7 +112,7 @@ resource "aws_autoscaling_group" "prod" {
 
   tag {
     key                 = "Name"
-    value               = "ec2-${local.name_suffix}"
+    value               = "ec2-${var.environment}"
     propagate_at_launch = true
   }
 

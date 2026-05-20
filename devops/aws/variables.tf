@@ -8,8 +8,8 @@ variable "environment" {
   type        = string
 
   validation {
-    condition     = contains(["prod", "staging"], var.environment)
-    error_message = "environment must be prod or staging."
+    condition     = contains(["production", "staging"], var.environment)
+    error_message = "environment must be production or staging."
   }
 }
 
@@ -39,7 +39,7 @@ variable "logs_bucket_name" {
   type        = string
 }
 
-# App config — written to SSM Parameter Store under /prod/*
+# App config — written to SSM Parameter Store under /<environment>/*
 
 variable "app_postgres_user" {
   description = "PostgreSQL username"

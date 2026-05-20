@@ -1,6 +1,6 @@
 locals {
   name_suffix = var.environment
-  env_label   = var.environment == "prod" ? "production" : var.environment
+  env_label   = var.environment
 }
 
 resource "aws_security_group" "alb" {

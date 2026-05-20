@@ -5,7 +5,6 @@ locals {
     az1        = "eu-north-1a"
     az2        = "eu-north-1b"
 
-    ecr_repository_arn     = "arn:aws:ecr:eu-north-1:622333992348:repository/group1/devops-project"
     logs_bucket_name       = "devops-project-group1-logs"
     app_postgres_user      = get_env("TF_VAR_app_postgres_user", "change-me")
     app_postgres_password  = get_env("TF_VAR_app_postgres_password", "change-me")

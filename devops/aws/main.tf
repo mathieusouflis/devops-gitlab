@@ -10,6 +10,7 @@ locals {
 
 module "iam" {
   source              = "./modules/iam"
+  environment         = var.environment
   ecr_repository_arn  = var.ecr_repository_arn
   logs_bucket_name    = var.logs_bucket_name
 }

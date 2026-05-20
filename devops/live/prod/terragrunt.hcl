@@ -7,5 +7,6 @@ terraform {
 }
 
 inputs = {
-  environment = "prod"
+  environment        = "production"
+  ecr_repository_arn = get_env("TF_VAR_ecr_repository_arn", "")
 }
