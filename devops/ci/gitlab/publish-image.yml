@@ -1,7 +1,4 @@
-publish-image:
-  stage: publish
-  image: docker:27.0.3
-
+.build-image:
   services:
     - docker:27.0.3-dind
 
@@ -79,11 +76,20 @@ publish-image:
     - docker push "${AWS_ECR_REPOSITORY_URI}:backend"
     - docker push "${AWS_ECR_REPOSITORY_URI}:frontend"
 
+publish-prod:
+  stage: publish
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
-      environment:
-        name: production
+  environment: production
+  extends: .build-image
+
+publish-staging:
+  stage: publish
+
+  rules:
     - if: $CI_COMMIT_BRANCH != "main"
-      environment:
-        name: staging
     - when: never
+  environment: staging
+  extends: .build-image
+
+  image: docker:27.0.3
