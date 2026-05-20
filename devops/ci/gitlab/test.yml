@@ -67,7 +67,11 @@ test_e2e:
   script:
     - docker compose -f docker-compose.prod.yaml up -d db backend frontend nginx
     - sleep 5
-    - docker compose -f docker-compose.prod.yaml exec -T -e FRONTEND_URL="http://nginx" -e API_URL="http://backend:${BACKEND_PORT}" backend pnpm run test:e2e
+    - >
+      docker compose -f docker-compose.prod.yaml exec -T
+      -e FRONTEND_URL="http://nginx"
+      -e API_URL="http://backend:${BACKEND_PORT}"
+      backend pnpm run test:e2e
   after_script:
     - docker compose -f docker-compose.prod.yaml down
   artifacts:
