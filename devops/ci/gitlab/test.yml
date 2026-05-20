@@ -1,4 +1,98 @@
-test:
+# 1. Base Blueprint Definitions (Templates)
+.feature-branch-rules:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == "develop"
+
+.docker-node-job:
+  image: docker:24.0.7-cli
+  services:
+    - name: docker:24.0.7-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: "tcp://docker:2375"
+    DOCKER_TLS_CERTDIR: ""
+
+test_unit:
   stage: test
+  image: node:20-slim
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@latest --activate
+    - pnpm install --frozen-lockfile
   script:
-    - echo "Success..."
+    - cd backend
+    - pnpm run test:unit
+  artifacts:
+    when: always
+    reports:
+      junit: backend/junit.xml
+
+test_integration:
+  stage: test
+  extends:
+    - .feature-branch-rules
+    - .docker-node-job
+  allow_failure: false
+  variables:
+    API_URL: "http://docker:${BACKEND_PORT}"
+  cache:
+    key: "turbo-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .turbo/cache
+  script:
+    - docker compose -f docker-compose.prod.yaml up -d db backend
+    - docker compose -f docker-compose.prod.yaml exec -T backend pnpm run test:integration
+  after_script:
+    - docker compose -f docker-compose.prod.yaml down
+  artifacts:
+    when: always
+    reports:
+      junit: backend/junit.xml
+
+test_e2e:
+  stage: test
+  extends:
+    - .feature-branch-rules
+    - .docker-node-job
+  allow_failure: true
+  variables:
+    E2E_BASE_URL: "http://nginx"
+    API_URL: "http://backend:${BACKEND_PORT}"
+  cache:
+    key: "turbo-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .turbo/cache
+  script:
+    - docker compose -f docker-compose.prod.yaml up -d db backend frontend nginx
+    - sleep 5
+    - >
+      docker compose -f docker-compose.prod.yaml exec -T
+      -e FRONTEND_URL="http://nginx"
+      -e API_URL="http://backend:${BACKEND_PORT}"
+      backend pnpm run test:e2e
+  after_script:
+    - docker compose -f docker-compose.prod.yaml down
+  artifacts:
+    when: always
+    reports:
+      junit: backend/e2e-junit.xml
+
+test_security_scan:
+  stage: test
+  extends: .feature-branch-rules
+  allow_failure: true
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .trivycache/
+  services:
+    - docker:24.0.5-dind
+  script:
+    - trivy image --download-db-only --cache-dir .trivycache
+    - trivy fs --exit-code 1 --severity HIGH,CRITICAL --cache-dir .trivycache/ .
+    - trivy config --exit-code 1 --severity HIGH,CRITICAL devops/docker/
