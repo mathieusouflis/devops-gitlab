@@ -53,6 +53,7 @@ services:
     restart: always
     environment:
       FRONTEND_PORT: ${VITE_FRONTEND_PORT}
+      NGINX_ENVSUBST_TEMPLATE_VARS: FRONTEND_PORT
     networks:
       - app
     depends_on:
