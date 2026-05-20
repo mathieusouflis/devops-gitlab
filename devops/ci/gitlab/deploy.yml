@@ -1,12 +1,8 @@
 deploy-prod:
   stage: deploy
-<<<<<<< HEAD
   image:
     name: amazon/aws-cli
     entrypoint: [""]
-=======
-  image: amazon/aws-cli
->>>>>>> 70b9251 (ci(gitlab): add prod deploy job using ASG refresh)
 
   interruptible: false
   allow_failure: false
@@ -47,9 +43,5 @@ deploy-prod:
 
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
-<<<<<<< HEAD
       when: manual
-=======
-      when: on_success
->>>>>>> 70b9251 (ci(gitlab): add prod deploy job using ASG refresh)
     - when: never
