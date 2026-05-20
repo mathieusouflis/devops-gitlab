@@ -27,7 +27,7 @@ test_unit:
   artifacts:
     when: always
     reports:
-      junit: backend/test-results/junit.xml
+      junit: backend/junit.xml
 
 test_integration:
   stage: test
