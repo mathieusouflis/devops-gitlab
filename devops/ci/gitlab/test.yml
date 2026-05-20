@@ -58,15 +58,16 @@ test_e2e:
     - .docker-node-job
   allow_failure: true
   variables:
-    FRONTEND_URL: "http://docker:${HTTP_PORT}"
-    API_URL: "http://docker:${HTTP_PORT}${VITE_FRONTEND_API_URL}"
+    FRONTEND_URL: "http://nginx"
+    API_URL: "http://backend:${BACKEND_PORT}"
   cache:
     key: "turbo-${CI_COMMIT_REF_SLUG}"
     paths:
       - .turbo/cache
   script:
     - docker compose -f docker-compose.prod.yaml up -d db backend frontend nginx
-    - docker compose -f docker-compose.prod.yaml exec -T backend pnpm run test:e2e
+    - sleep 5
+    - docker compose -f docker-compose.prod.yaml exec -T -e FRONTEND_URL="http://nginx" -e API_URL="http://backend:${BACKEND_PORT}" backend pnpm run test:e2e
   after_script:
     - docker compose -f docker-compose.prod.yaml down
   artifacts:
