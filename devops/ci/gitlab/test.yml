@@ -15,7 +15,7 @@
 .docker-node-job:
   image: node:22-alpine
   variables:
-    FF_NETWORK_PER_BUILD: "true" 
+    FF_NETWORK_PER_BUILD: "true"
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
   services:
@@ -41,7 +41,7 @@ test:unit:
   coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
   script:
     - cd backend
-    - pnpm run test:unit 
+    - pnpm run test:unit
   artifacts:
     when: always
     reports:
