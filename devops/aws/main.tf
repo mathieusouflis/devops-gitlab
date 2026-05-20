@@ -49,17 +49,22 @@ module "vpc" {
   vpc_cidr = var.vpc_cidr
 }
 
+module "alb" {
+  source            = "./modules/alb"
+  vpc_id            = module.vpc.vpc_id
+  public_subnet_ids = module.vpc.public_subnets
+}
+
 module "ssm" {
   source = "./modules/ssm"
 
-  postgres_user         = var.app_postgres_user
-  postgres_password     = var.app_postgres_password
-  postgres_db           = var.app_postgres_db
-  backend_port          = var.app_backend_port
-  cors_origin           = var.app_cors_origin
-  vite_frontend_port    = var.app_vite_frontend_port
-  http_port             = var.app_http_port
-  vite_frontend_api_url = var.app_vite_frontend_api_url
+  postgres_user      = var.app_postgres_user
+  postgres_password  = var.app_postgres_password
+  postgres_db        = var.app_postgres_db
+  backend_port       = var.app_backend_port
+  alb_dns_name       = module.alb.dns_name
+  vite_frontend_port = var.app_vite_frontend_port
+  http_port          = var.app_http_port
 }
 
 module "ec2" {
@@ -71,4 +76,5 @@ module "ec2" {
   ecr_registry                   = local.ecr_registry
   ecr_repository_uri             = local.ecr_repository_uri
   ecr_read_instance_profile_name = module.iam.ecr_read_instance_profile_name
+  target_group_arn               = module.alb.target_group_arn
 }

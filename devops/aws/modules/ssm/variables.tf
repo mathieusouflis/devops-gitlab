@@ -20,10 +20,8 @@ variable "backend_port" {
   type        = string
 }
 
-# TODO(ALB): replace with module.alb.dns_name output once the ALB module exists
-#            and remove this variable entirely
-variable "cors_origin" {
-  description = "Allowed CORS origin (use * temporarily, replace with http://alb-dns once ALB exists)"
+variable "alb_dns_name" {
+  description = "ALB DNS name used to compute CORS origin and API URL"
   type        = string
 }
 
@@ -38,9 +36,3 @@ variable "http_port" {
   default     = "80"
 }
 
-# TODO(ALB): replace with "http://${module.alb.dns_name}/api" once the ALB module exists
-#            and remove this variable entirely
-variable "vite_frontend_api_url" {
-  description = "API base URL consumed by the frontend (set to match cors_origin)"
-  type        = string
-}
