@@ -60,6 +60,7 @@ test:integration:
     paths:
       - .turbo/cache
   script:
+    #docker comand with multiple compose files to start only db and backend services
     - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml up -d db backend
     - cd backend
     - pnpm run test:integration
