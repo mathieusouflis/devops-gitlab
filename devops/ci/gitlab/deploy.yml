@@ -1,0 +1,47 @@
+deploy-prod:
+  stage: deploy
+  image: amazon/aws-cli
+
+  interruptible: false
+  allow_failure: false
+  timeout: 20 minutes
+
+  environment:
+    name: production
+
+  when: manual
+
+  needs:
+    - build-image-prod
+
+  variables:
+    AWS_ASG_NAME: $CI_AWS_ASG_NAME
+
+  script:
+    - |
+      REFRESH_ID=$(aws autoscaling start-instance-refresh \
+        --auto-scaling-group-name "$AWS_ASG_NAME" \
+        --preferences '{"MinHealthyPercentage": 50}' \
+        --region "$AWS_ECR_REGION" \
+        --query 'InstanceRefreshId' \
+        --output text)
+      echo "Instance refresh started: $REFRESH_ID"
+      while true; do
+        STATUS=$(aws autoscaling describe-instance-refreshes \
+          --auto-scaling-group-name "$AWS_ASG_NAME" \
+          --instance-refresh-ids "$REFRESH_ID" \
+          --region "$AWS_ECR_REGION" \
+          --query 'InstanceRefreshes[0].Status' \
+          --output text)
+        echo "Refresh status: $STATUS"
+        case "$STATUS" in
+          Successful) echo "Deploy complete."; exit 0 ;;
+          Failed|Cancelled) echo "Deploy failed with status: $STATUS"; exit 1 ;;
+          *) sleep 30 ;;
+        esac
+      done
+
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: on_success
+    - when: never
