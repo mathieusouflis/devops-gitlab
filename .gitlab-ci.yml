@@ -20,6 +20,5 @@ include:
   - local: "devops/ci/gitlab/test.yml"
   - local: "devops/ci/gitlab/build.yml"
   - local: "devops/ci/gitlab/security.yml"
-  - local: "devops/ci/gitlab/build-image-dev.yml"
-  - local: "devops/ci/gitlab/build-image-prod.yml"
+  - local: "devops/ci/gitlab/publish-image.yml"
   - local: "devops/ci/gitlab/deploy.yml"

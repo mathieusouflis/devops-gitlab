@@ -15,9 +15,6 @@ build-image-prod:
       - runner_system_failure
       - stuck_or_timeout_failure
 
-  environment:
-    name: production
-
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
@@ -77,12 +74,16 @@ build-image-prod:
     - docker push "$BACKEND_IMAGE_SHORT_TAG"
     - docker push "$FRONTEND_IMAGE_SHA_TAG"
     - docker push "$FRONTEND_IMAGE_SHORT_TAG"
-    - docker tag "$BACKEND_IMAGE_SHA_TAG" "${AWS_ECR_REPOSITORY_URI}:backend-production"
-    - docker tag "$FRONTEND_IMAGE_SHA_TAG" "${AWS_ECR_REPOSITORY_URI}:frontend-production"
-    - docker push "${AWS_ECR_REPOSITORY_URI}:backend-production"
-    - docker push "${AWS_ECR_REPOSITORY_URI}:frontend-production"
+    - docker tag "$BACKEND_IMAGE_SHA_TAG" "${AWS_ECR_REPOSITORY_URI}:backend"
+    - docker tag "$FRONTEND_IMAGE_SHA_TAG" "${AWS_ECR_REPOSITORY_URI}:frontend"
+    - docker push "${AWS_ECR_REPOSITORY_URI}:backend"
+    - docker push "${AWS_ECR_REPOSITORY_URI}:frontend"
 
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
-      when: manual
+      environment:
+        name: production
+    - if: $CI_COMMIT_BRANCH != "main"
+      environment:
+        name: staging
     - when: never
