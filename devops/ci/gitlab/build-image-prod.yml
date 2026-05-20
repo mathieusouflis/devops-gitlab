@@ -54,6 +54,7 @@ build-image-prod:
     - echo "Building prod images for ${CI_COMMIT_SHA} into ${AWS_ECR_REPOSITORY_URI}"
     - |
       docker build \
+        --platform linux/amd64 \
         --file devops/docker/backend/Dockerfile.backend.prod \
         --build-arg BACKEND_PORT="$BACKEND_PORT" \
         --tag "$BACKEND_IMAGE_SHA_TAG" \
@@ -64,6 +65,7 @@ build-image-prod:
         .
     - |
       docker build \
+        --platform linux/amd64 \
         --file devops/docker/frontend/Dockerfile.frontend.prod \
         --build-arg FRONTEND_PORT="$VITE_FRONTEND_PORT" \
         --build-arg VITE_FRONTEND_API_URL="$VITE_FRONTEND_API_URL" \
