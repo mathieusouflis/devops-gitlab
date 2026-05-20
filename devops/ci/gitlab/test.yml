@@ -42,10 +42,10 @@ test_integration:
     paths:
       - .turbo/cache
   script:
-    - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml up -d db backend
-    - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml exec -T backend pnpm run test:integration
+    - docker compose -f docker-compose.prod.yaml up -d db backend
+    - docker compose -f docker-compose.prod.yaml exec -T backend pnpm run test:integration
   after_script:
-    - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml down
+    - docker compose -f docker-compose.prod.yaml down
   artifacts:
     when: always
     reports:
