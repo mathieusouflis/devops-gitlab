@@ -58,7 +58,7 @@ test_e2e:
     - .docker-node-job
   allow_failure: true
   variables:
-    FRONTEND_URL: "http://nginx"
+    E2E_BASE_URL: "http://nginx"
     API_URL: "http://backend:${BACKEND_PORT}"
   cache:
     key: "turbo-${CI_COMMIT_REF_SLUG}"
