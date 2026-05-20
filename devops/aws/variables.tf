@@ -3,6 +3,16 @@ variable "aws_region" {
   type        = string
 }
 
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+
+  validation {
+    condition     = contains(["prod", "staging"], var.environment)
+    error_message = "environment must be prod or staging."
+  }
+}
+
 variable "vpc_cidr" {
   description = "CIDR du VPC"
   type        = string

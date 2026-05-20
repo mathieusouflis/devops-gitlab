@@ -14,10 +14,16 @@ data "aws_ami" "debian" {
   }
 }
 
-# Security Group for PROD EC2 instances
+locals {
+  name_suffix = var.environment
+  env_label   = var.environment == "prod" ? "production" : var.environment
+  ssm_prefix  = "/group1/${var.environment}"
+}
+
+# Security Group for EC2 instances
 resource "aws_security_group" "ec2_prod" {
-  name        = "tsg-ec2-prod"
-  description = "PROD EC2 - HTTP from VPC (ALB), all outbound"
+  name        = "tsg-ec2-${local.name_suffix}"
+  description = "${upper(local.name_suffix)} EC2 - HTTP from VPC (ALB), all outbound"
   vpc_id      = var.vpc_id
 
   ingress {
@@ -36,14 +42,14 @@ resource "aws_security_group" "ec2_prod" {
   }
 
   tags = {
-    Name = "tsg-ec2-prod"
-    Env  = "production"
+    Name = "tsg-ec2-${local.name_suffix}"
+    Env  = local.env_label
   }
 }
 
 # Launch Template
 resource "aws_launch_template" "prod" {
-  name_prefix   = "lt-prod-"
+  name_prefix   = "lt-${local.name_suffix}-"
   image_id      = data.aws_ami.debian.id
   instance_type = "t3.micro"
 
@@ -57,7 +63,7 @@ resource "aws_launch_template" "prod" {
     region             = var.aws_region
     ecr_registry       = var.ecr_registry
     ecr_repository_uri = var.ecr_repository_uri
-    ssm_prefix         = "/group1/prod"
+    ssm_prefix         = local.ssm_prefix
     init_sql_b64       = base64encode(file("${path.root}/../../devops/docker/postgres/init.sql"))
     nginx_conf_b64     = base64encode(file("${path.root}/../../devops/docker/nginx/nginx.prod.conf"))
     compose_b64        = base64encode(file("${path.root}/../../docker-compose.ecr.yaml"))
@@ -73,16 +79,16 @@ resource "aws_launch_template" "prod" {
   tag_specifications {
     resource_type = "instance"
     tags = {
-      Name = "ec2-prod"
-      Env  = "production"
+      Name = "ec2-${local.name_suffix}"
+      Env  = local.env_label
     }
   }
 
   tag_specifications {
     resource_type = "volume"
     tags = {
-      Name = "ec2-prod-volume"
-      Env  = "production"
+      Name = "ec2-${local.name_suffix}-volume"
+      Env  = local.env_label
     }
   }
 
@@ -93,7 +99,7 @@ resource "aws_launch_template" "prod" {
 
 # Auto Scaling Group
 resource "aws_autoscaling_group" "prod" {
-  name                = "asg-prod"
+  name                = "asg-${local.name_suffix}"
   desired_capacity    = 2
   min_size            = 1
   max_size            = 2
@@ -107,13 +113,13 @@ resource "aws_autoscaling_group" "prod" {
 
   tag {
     key                 = "Name"
-    value               = "ec2-prod"
+    value               = "ec2-${local.name_suffix}"
     propagate_at_launch = true
   }
 
   tag {
     key                 = "Env"
-    value               = "production"
+    value               = local.env_label
     propagate_at_launch = true
   }
 
