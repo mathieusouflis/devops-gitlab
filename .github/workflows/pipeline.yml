@@ -25,13 +25,13 @@ jobs:
 
   publish:
     needs: [build, test]
-    if: github.ref_name == 'main' || github.ref_name == 'staging'
+    if: github.ref_name == 'staging'
     permissions:
       contents: write
     uses: ./.github/workflows/publish.yml
     secrets: inherit
     with:
-      environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      environment: staging
 
   deploy:
     needs: publish
@@ -42,3 +42,11 @@ jobs:
     secrets: inherit
     with:
       environment: staging
+
+  promote:
+    needs: [build, test]
+    if: github.ref_name == 'main'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/promote.yml
+    secrets: inherit

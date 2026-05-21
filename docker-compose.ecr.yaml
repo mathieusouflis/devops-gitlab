@@ -28,7 +28,7 @@ services:
       start_period: 10s
 
   backend:
-    image: ${ECR_REPOSITORY_URI}:backend-production
+    image: ${ECR_REPOSITORY_URI}:backend-${IMAGE_ENV}
     restart: always
     environment:
       BACKEND_PORT: ${BACKEND_PORT}
@@ -49,7 +49,7 @@ services:
       start_period: 10s
 
   frontend:
-    image: ${ECR_REPOSITORY_URI}:frontend-production
+    image: ${ECR_REPOSITORY_URI}:frontend-${IMAGE_ENV}
     restart: always
     environment:
       FRONTEND_PORT: ${VITE_FRONTEND_PORT}

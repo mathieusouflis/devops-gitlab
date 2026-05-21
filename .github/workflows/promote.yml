@@ -1,0 +1,43 @@
+name: Promote
+
+on:
+  workflow_call:
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+
+jobs:
+  promote:
+    name: promote staging → production
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 5
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_ECR_REGION }}
+      - name: Re-tag staging images as production
+        run: |
+          REPO_NAME="${{ vars.AWS_ECR_REPOSITORY_URI }}"
+          REPO_NAME="${REPO_NAME#*/}"
+
+          for SERVICE in backend frontend; do
+            MANIFEST=$(aws ecr batch-get-image \
+              --repository-name "$REPO_NAME" \
+              --image-ids imageTag="${SERVICE}-staging" \
+              --region "${{ vars.AWS_ECR_REGION }}" \
+              --query 'images[0].imageManifest' \
+              --output text)
+
+            aws ecr put-image \
+              --repository-name "$REPO_NAME" \
+              --image-tag "${SERVICE}-production" \
+              --image-manifest "$MANIFEST" \
+              --region "${{ vars.AWS_ECR_REGION }}"
+
+            echo "Promoted ${SERVICE}-staging → ${SERVICE}-production"
+          done

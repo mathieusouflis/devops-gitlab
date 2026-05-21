@@ -62,6 +62,7 @@ resource "aws_launch_template" "prod" {
     region             = var.aws_region
     ecr_registry       = var.ecr_registry
     ecr_repository_uri = var.ecr_repository_uri
+    environment        = var.environment
     ssm_prefix         = local.ssm_prefix
     init_sql_b64       = base64encode(file("${path.root}/../../devops/docker/postgres/init.sql"))
     nginx_conf_b64     = base64encode(file("${path.root}/../../devops/docker/nginx/nginx.prod.conf"))

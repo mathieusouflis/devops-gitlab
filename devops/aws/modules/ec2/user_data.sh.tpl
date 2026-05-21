@@ -61,6 +61,7 @@ VITE_FRONTEND_PORT=$VITE_FRONTEND_PORT
 HTTP_PORT=$HTTP_PORT
 VITE_FRONTEND_API_URL=$VITE_FRONTEND_API_URL
 ECR_REPOSITORY_URI=${ecr_repository_uri}
+IMAGE_ENV=${environment}
 EOF
 
 # Write compose file (base64-encoded at Terraform render time)
