@@ -34,9 +34,32 @@ variable "ecr_repository_arn" {
 }
 
 variable "logs_bucket_name" {
-  # TODO: S3 logs bucket does not exist yet — create the bucket and pass its name here (see ops#19)
-  description = "Name of the S3 bucket where EC2 instances write logs"
+  description = "Name of the S3 bucket receiving ALB access logs"
   type        = string
+}
+
+variable "alb_access_logs_prefix" {
+  description = "Prefix used by ALB when writing access logs to S3"
+  type        = string
+  default     = "alb"
+}
+
+variable "logs_bucket_expiration_days" {
+  description = "Number of days to keep ALB access logs in S3"
+  type        = number
+  default     = 30
+}
+
+variable "cloudwatch_log_retention_days" {
+  description = "Number of days to retain CloudWatch log groups"
+  type        = number
+  default     = 14
+}
+
+variable "alarm_notification_emails" {
+  description = "Email addresses subscribed to CloudWatch alarm notifications"
+  type        = list(string)
+  default     = []
 }
 
 # App config — written to SSM Parameter Store under /<environment>/*

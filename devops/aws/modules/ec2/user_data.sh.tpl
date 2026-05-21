@@ -27,6 +27,60 @@ rm /tmp/ssm.deb
 systemctl enable amazon-ssm-agent
 systemctl start amazon-ssm-agent
 
+# Install and configure the CloudWatch agent for instance-level logs
+curl -fsSL "https://amazoncloudwatch-agent.s3.amazonaws.com/debian/amd64/latest/amazon-cloudwatch-agent.deb" \
+  -o /tmp/amazon-cloudwatch-agent.deb
+dpkg -i /tmp/amazon-cloudwatch-agent.deb
+rm /tmp/amazon-cloudwatch-agent.deb
+
+mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
+cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<EOF
+{
+  "agent": {
+    "metrics_collection_interval": 60,
+    "run_as_user": "root"
+  },
+  "metrics": {
+    "append_dimensions": {
+      "AutoScalingGroupName": "$${!aws:AutoScalingGroupName}",
+      "InstanceId": "$${!aws:InstanceId}"
+    },
+    "aggregation_dimensions": [["AutoScalingGroupName"]],
+    "metrics_collected": {
+      "mem": {
+        "measurement": ["mem_used_percent"],
+        "metrics_collection_interval": 60
+      }
+    }
+  },
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/var/log/syslog",
+            "log_group_name": "${cloudwatch_system_log_group_name}",
+            "log_stream_name": "{instance_id}/syslog",
+            "timestamp_format": "%b %d %H:%M:%S"
+          },
+          {
+            "file_path": "/var/log/cloud-init-output.log",
+            "log_group_name": "${cloudwatch_system_log_group_name}",
+            "log_stream_name": "{instance_id}/cloud-init-output"
+          }
+        ]
+      }
+    }
+  }
+}
+EOF
+
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+  -a fetch-config \
+  -m ec2 \
+  -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \
+  -s
+
 # Create app directory
 mkdir -p /opt/app
 
@@ -62,6 +116,8 @@ HTTP_PORT=$HTTP_PORT
 VITE_FRONTEND_API_URL=$VITE_FRONTEND_API_URL
 ECR_REPOSITORY_URI=${ecr_repository_uri}
 IMAGE_ENV=${environment}
+AWS_REGION=${region}
+CW_APP_LOG_GROUP=${cloudwatch_app_log_group_name}
 EOF
 
 # Write compose file (base64-encoded at Terraform render time)

@@ -1,0 +1,70 @@
+name: Supervision And Logs
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      mode:
+        description: Terraform action
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+      scope:
+        description: Monitoring scope
+        required: true
+        type: choice
+        options:
+          - monitoring-infra
+          - monitoring-full
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+    env:
+      TG_DIR: ${{ inputs.environment == 'production' && 'devops/live/prod' || 'devops/live/staging' }}
+      TF_VAR_ecr_repository_arn: ${{ vars.AWS_ECR_REPOSITORY_ARN }}
+      TF_VAR_app_postgres_user: ${{ vars.POSTGRES_USER }}
+      TF_VAR_app_postgres_password: ${{ vars.POSTGRES_PASSWORD }}
+      TF_VAR_alarm_notification_emails: ${{ vars.ALARM_NOTIFICATION_EMAILS_JSON || '[]' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_ECR_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Install Terragrunt
+        run: |
+          LATEST=$(curl -s https://api.github.com/repos/gruntwork-io/terragrunt/releases/latest | jq -r '.tag_name')
+          curl -Lo /usr/local/bin/terragrunt "https://github.com/gruntwork-io/terragrunt/releases/download/${LATEST}/terragrunt_linux_amd64"
+          chmod +x /usr/local/bin/terragrunt
+
+      - name: Terraform plan/apply
+        working-directory: ${{ env.TG_DIR }}
+        run: |
+          if [ "${{ inputs.scope }}" = "monitoring-infra" ]; then
+            TARGETS="-target=module.cloudwatch -target=module.s3_logs -target=module.iam.aws_iam_role_policy_attachment.ecr_read_cloudwatch"
+          else
+            TARGETS="-target=module.cloudwatch -target=module.s3_logs -target=module.iam.aws_iam_role_policy_attachment.ecr_read_cloudwatch -target=module.ec2"
+          fi
+
+          if [ "${{ inputs.mode }}" = "apply" ]; then
+            terragrunt apply --terragrunt-non-interactive --auto-approve $TARGETS
+          else
+            terragrunt plan --terragrunt-non-interactive $TARGETS
+          fi

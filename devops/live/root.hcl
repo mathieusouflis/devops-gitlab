@@ -6,6 +6,10 @@ locals {
     az2        = "eu-south-2b"
 
     logs_bucket_name       = "devops-project-group1-logs"
+    alb_access_logs_prefix = "alb"
+    logs_bucket_expiration_days = 30
+    cloudwatch_log_retention_days = 14
+    alarm_notification_emails = []
     app_postgres_user      = get_env("TF_VAR_app_postgres_user", "change-me")
     app_postgres_password  = get_env("TF_VAR_app_postgres_password", "change-me")
     app_postgres_db        = "devops_project"

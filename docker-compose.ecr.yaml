@@ -20,6 +20,12 @@ services:
       - /opt/app/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - db
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION}
+        awslogs-group: ${CW_APP_LOG_GROUP}
+        awslogs-stream-prefix: db
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 3s
@@ -38,11 +44,21 @@ services:
     networks:
       - db
       - app
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION}
+        awslogs-group: ${CW_APP_LOG_GROUP}
+        awslogs-stream-prefix: backend
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:${BACKEND_PORT}/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:${BACKEND_PORT}/health || exit 1",
+        ]
       interval: 3s
       timeout: 3s
       retries: 3
@@ -56,11 +72,21 @@ services:
       NGINX_ENVSUBST_TEMPLATE_VARS: FRONTEND_PORT
     networks:
       - app
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION}
+        awslogs-group: ${CW_APP_LOG_GROUP}
+        awslogs-stream-prefix: frontend
     depends_on:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:${VITE_FRONTEND_PORT}/ || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://127.0.0.1:${VITE_FRONTEND_PORT}/ || exit 1",
+        ]
       interval: 3s
       timeout: 5s
       retries: 3
@@ -79,6 +105,12 @@ services:
       BACKEND_PORT: ${BACKEND_PORT}
       VITE_FRONTEND_PORT: ${VITE_FRONTEND_PORT}
       NGINX_ENVSUBST_TEMPLATE_VARS: BACKEND_PORT VITE_FRONTEND_PORT
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION}
+        awslogs-group: ${CW_APP_LOG_GROUP}
+        awslogs-stream-prefix: nginx
     depends_on:
       backend:
         condition: service_healthy
