@@ -1,0 +1,102 @@
+name: FinOps
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Terragrunt environment to destroy
+        required: true
+        type: choice
+        options:
+          - production
+          - staging
+        default: production
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+
+jobs:
+  finops:
+    name: finops (${{ inputs.environment || github.event.inputs.environment }})
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || github.event.inputs.environment }}
+    timeout-minutes: 30
+    env:
+      TARGET_ENV: ${{ inputs.environment || github.event.inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_ECR_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.3
+
+      - name: Install Terragrunt
+        run: |
+          TG_VERSION="0.72.9"
+          sudo curl -L "https://github.com/gruntwork-io/terragrunt/releases/download/v${TG_VERSION}/terragrunt_linux_amd64" -o /usr/local/bin/terragrunt
+          sudo chmod +x /usr/local/bin/terragrunt
+          terragrunt --version
+
+      - name: Terragrunt destroy
+        working-directory: devops/live/${{ env.TARGET_ENV == 'production' && 'prod' || 'staging' }}
+        env:
+          TF_VAR_ecr_repository_arn: ${{ vars.AWS_ECR_REPOSITORY_ARN }}
+          TF_VAR_ecr_repository_arn_staging: ${{ vars.AWS_ECR_REPOSITORY_ARN_STAGING }}
+          TF_VAR_app_postgres_user: ${{ secrets.TF_VAR_APP_POSTGRES_USER }}
+          TF_VAR_app_postgres_password: ${{ secrets.TF_VAR_APP_POSTGRES_PASSWORD }}
+        run: terragrunt destroy -auto-approve
+
+      - name: Delete orphan EBS volumes
+        run: |
+          VOLUMES=$(aws ec2 describe-volumes \
+            --filters Name=status,Values=available \
+            --query "Volumes[*].VolumeId" \
+            --output text)
+
+          if [ -z "$VOLUMES" ]; then
+            echo "No orphan EBS volumes found."
+            exit 0
+          fi
+
+          for VOLUME_ID in $VOLUMES; do
+            echo "Deleting volume: $VOLUME_ID"
+            aws ec2 delete-volume --volume-id "$VOLUME_ID"
+          done
+
+      - name: Delete untagged ECR images
+        run: |
+          REPOSITORY_ARN="${{ vars.AWS_ECR_REPOSITORY_ARN }}"
+          REPOSITORY_NAME="${REPOSITORY_ARN##*/}"
+
+          if [ -z "$REPOSITORY_ARN" ] || [ -z "$REPOSITORY_NAME" ]; then
+            echo "AWS_ECR_REPOSITORY_ARN is not defined, skipping ECR cleanup."
+            exit 0
+          fi
+
+          IMAGES=$(aws ecr list-images \
+            --repository-name "$REPOSITORY_NAME" \
+            --filter tagStatus=UNTAGGED \
+            --query 'imageIds[*]' \
+            --output json)
+
+          if [ "$IMAGES" = "[]" ]; then
+            echo "No untagged ECR images found."
+            exit 0
+          fi
+
+          aws ecr batch-delete-image \
+            --repository-name "$REPOSITORY_NAME" \
+            --image-ids "$IMAGES"
