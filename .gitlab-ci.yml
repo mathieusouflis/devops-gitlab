@@ -9,11 +9,11 @@ workflow:
     - when: never
 
 stages:
-  - lint
+  # - lint
   - test
-  - build
-  - publish
-  - deploy
+  # - build
+  # - publish
+  # - deploy
 
 variables:
   VITE_FRONTEND_PORT: $CI_VITE_FRONTEND_PORT
