@@ -94,8 +94,8 @@ e2e-test:
     - pnpm install --frozen-lockfile
     - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml up -d
     - sleep 10
-    - pnpm test:e2e
-    - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml down
+    - HTTP_PORT="docker" pnpm test:e2e
+    - docker compose -f docker-compose.prod.yaml down
   artifacts:
     when: always
     reports:
