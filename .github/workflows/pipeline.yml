@@ -33,7 +33,8 @@ jobs:
 
   deploy:
     needs: publish
+    if: github.ref_name == 'staging'
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
     with:
-      environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      environment: staging
