@@ -74,6 +74,11 @@ resource "aws_iam_role_policy_attachment" "ecr_read_ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+resource "aws_iam_role_policy_attachment" "ecr_read_cloudwatch" {
+  role       = aws_iam_role.ecr_read.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
 resource "aws_iam_policy" "ecr_read" {
   name   = "W2A1-EC2-ECR-ReadPolicy-${var.environment}"
   policy = data.aws_iam_policy_document.ecr_read.json

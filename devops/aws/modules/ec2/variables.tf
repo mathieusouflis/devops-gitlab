@@ -38,6 +38,16 @@ variable "ecr_read_instance_profile_name" {
   type        = string
 }
 
+variable "cloudwatch_app_log_group_name" {
+  description = "CloudWatch log group used by application containers"
+  type        = string
+}
+
+variable "cloudwatch_system_log_group_name" {
+  description = "CloudWatch log group used by instance system logs"
+  type        = string
+}
+
 variable "target_group_arn" {
   description = "ARN of the ALB target group to attach the ASG to"
   type        = string

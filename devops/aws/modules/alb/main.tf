@@ -31,7 +31,11 @@ resource "aws_lb" "prod" {
   security_groups    = [aws_security_group.alb.id]
   subnets            = var.public_subnet_ids
 
-  # TODO(ops#19): enable access_logs once the S3 logs bucket exists
+  access_logs {
+    bucket  = var.access_logs_bucket_name
+    prefix  = var.access_logs_prefix
+    enabled = true
+  }
 
   tags = {
     Name = "W2A1-alb-${var.environment}"

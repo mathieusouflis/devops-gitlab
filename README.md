@@ -1,45 +1,149 @@
-# CI / AWS — sample full-stack app
+# DevOps GitLab Monorepo
 
-Monorepo used for **continuous integration** and **containerized** local development: a **React + Vite** frontend, an **Express** API, **PostgreSQL**, and **nginx** as a reverse proxy. Docker assets and GitLab CI stubs live under `devops/`.
+Monorepo for a small full-stack application and its delivery pipeline: a React 19 + Vite frontend, an Express 5 API, PostgreSQL, nginx, Docker Compose environments, GitLab CI jobs, and AWS infrastructure managed with Terraform and Terragrunt.
 
-## Quick start (Docker)
+## What is in the repo
 
-1. **Prerequisites:** [Docker](https://docs.docker.com/get-docker/) with Compose, [GNU Make](https://www.gnu.org/software/make/) (optional but recommended).
+- `frontend/`: React SPA for the users CRUD UI.
+- `backend/`: Express API with `/health` and `/users` endpoints backed by PostgreSQL.
+- `devops/docker/`: Dockerfiles, nginx templates, and database initialization SQL.
+- `devops/ci/gitlab/`: GitLab CI fragments for lint, test, build, security, publish, and deploy stages.
+- `devops/aws/`: Terraform root and reusable AWS modules.
+- `devops/live/`: Terragrunt environments for `staging` and `prod`.
 
-2. From the **repository root**, create a `.env` file. Copy `.env.example` and adjust values so they match `docker-compose.yml` (see [`devops/README.md`](devops/README.md) for the exact variable names, including `POSTGRES_*_DEV`, `NGINX_CONF`, `DATABASE_URL`, and `VITE_*`).
+## Workspace commands
 
-3. Start the stack:
+The repository uses a pnpm workspace and Turbo at the root.
+
+```bash
+pnpm install
+pnpm dev
+pnpm build
+pnpm lint
+pnpm test
+pnpm test:unit
+pnpm test:integration
+pnpm test:e2e
+```
+
+Root scripts orchestrate the package scripts declared in `frontend/package.json` and `backend/package.json`.
+
+## Local development
+
+### Option 1: Node.js processes on the host
+
+Use this mode when you want to run Vite and Express directly without Docker.
+
+1. Install Node.js LTS and pnpm.
+2. Copy `.env.example.dev` to `.env`.
+3. Install dependencies from the repository root:
 
    ```bash
-   make up
+   pnpm install
    ```
 
-4. Open the app and APIs (also shown by `make help`):
+4. Start the workspace:
 
-   | What        | URL                   |
-   | ----------- | --------------------- |
-   | App (nginx) | http://localhost:8088 |
-   | API         | http://localhost:3000 |
-   | Vite dev    | http://localhost:5173 |
+   ```bash
+   pnpm dev
+   ```
 
-Common Make targets: `make help`, `make down`, `make logs`, `make logs s=backend`, `make shell s=frontend`. See the [`Makefile`](Makefile) for the full list.
+Typical values from `.env.example.dev`:
 
-## Repository layout
+- frontend: `http://localhost:5173`
+- backend: `http://localhost:3000`
+- API base URL used by the frontend: `VITE_FRONTEND_API_URL=http://localhost:3000`
 
-| Path                     | Description                                                                 |
-| ------------------------ | --------------------------------------------------------------------------- |
-| [`backend/`](backend/)   | Express REST API (`/users` CRUD), `pg`, Node **pnpm**                       |
-| [`frontend/`](frontend/) | React 19 + Vite SPA, users UI, **pnpm**                                     |
-| [`devops/`](devops/)     | Dockerfiles, nginx config, Postgres init SQL, GitLab CI YAML fragments      |
-| `docker-compose.yml`     | Local multi-service stack                                                   |
-| `.gitlab-ci.yml`         | GitLab entrypoint (pipeline include may be commented until CI is filled in) |
+### Option 2: Docker Compose development stack
+
+The repository contains several Compose files instead of a single default `docker-compose.yml`.
+
+- `docker-compose.dev.yaml`: local development stack with bind mounts and Vite dev server
+- `docker-compose.prod.yaml`: local production-like stack built from production Dockerfiles
+- `docker-compose.ecr.yaml`: deployment stack used on AWS EC2 with images pulled from ECR
+- `docker-compose.runner.yaml`: local GitLab Runner + MinIO cache
+
+To run the development stack from the repository root:
+
+1. Copy `.env.example` to `.env`.
+2. Start Compose by overriding the Makefile `COMPOSE` variable:
+
+   ```bash
+   COMPOSE="docker compose -f docker-compose.dev.yaml" make up
+   ```
+
+3. Useful commands:
+
+   ```bash
+   COMPOSE="docker compose -f docker-compose.dev.yaml" make help
+   COMPOSE="docker compose -f docker-compose.dev.yaml" make logs
+   COMPOSE="docker compose -f docker-compose.dev.yaml" make logs s=backend
+   COMPOSE="docker compose -f docker-compose.dev.yaml" make down
+   ```
+
+With the default values from `.env.example`, the exposed endpoints are:
+
+- frontend through nginx: `http://localhost`
+- backend direct access: `http://localhost:3000`
+- frontend container port used by nginx: `8088`
+- frontend API base URL: `/api`
+
+## Testing
+
+Backend tests are organized by scope and can be run through the workspace scripts:
+
+- `pnpm test`: all tests
+- `pnpm test:unit`: unit tests
+- `pnpm test:integration`: integration tests
+- `pnpm test:e2e`: end-to-end tests
+
+JUnit XML reports are written under `backend/junit/`.
+
+## CI/CD
+
+The root `.gitlab-ci.yml` includes the pipeline fragments from `devops/ci/gitlab/` and defines these stages:
+
+1. `lint`
+2. `test`
+3. `build`
+4. `publish`
+5. `deploy`
+
+The split files currently are:
+
+- `lint.yml`
+- `test.yml`
+- `build.yml`
+- `security.yml`
+- `publish-image.yml`
+- `deploy.yml`
+
+For local runner experiments, the Makefile also provides `runner-up`, `runner-down`, `runner-logs`, `runner-reset`, and `runner-setup` around `docker-compose.runner.yaml`.
+
+## AWS infrastructure
+
+AWS infrastructure code lives under `devops/aws/`.
+
+- reusable modules: `modules/alb`, `modules/cloudwatch`, `modules/ec2`, `modules/iam`, `modules/s3_logs`, `modules/ssm`, `modules/vpc`
+- Terragrunt live configuration: `devops/live/root.hcl`, `devops/live/staging/terragrunt.hcl`, `devops/live/prod/terragrunt.hcl`
+- the EC2 deployment uses `docker-compose.ecr.yaml`
+
+Typical validation flow from `devops/aws/`:
+
+```bash
+terraform init -backend=false
+terraform validate
+```
+
+Typical Terragrunt usage from an environment directory such as `devops/live/prod/`:
+
+```bash
+source ../../aws/.env
+terragrunt plan
+```
 
 ## Documentation
 
-- **[`backend/README.md`](backend/README.md)** — environment variables, API contract, local `pnpm start` vs `make up`.
-- **[`frontend/README.md`](frontend/README.md)** — Vite env vars, HMR behind nginx, scripts.
-- **[`devops/README.md`](devops/README.md)** — Docker/Compose wiring, CI placeholders, production image stubs.
-
-## Local development without Docker
-
-Install **Node.js** (LTS) and **pnpm**, run Postgres yourself, then use `pnpm install` and `pnpm dev` / `pnpm start` inside `frontend/` and `backend/` respectively. Details are in each package README.
+- `backend/README.md`: backend API details, environment variables, and test scripts
+- `frontend/README.md`: frontend runtime configuration and Vite workflow
+- `docs/getting-started/README.md`: starter template that still needs to be customized if this repo wants a separate onboarding guide

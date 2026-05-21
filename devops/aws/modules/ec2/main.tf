@@ -16,7 +16,7 @@ data "aws_ami" "debian" {
 
 locals {
 
-  ssm_prefix  = "/group1/${var.environment}"
+  ssm_prefix = "/group1/${var.environment}"
 }
 
 # Security Group for EC2 instances
@@ -64,6 +64,8 @@ resource "aws_launch_template" "prod" {
     ecr_repository_uri = var.ecr_repository_uri
     environment        = var.environment
     ssm_prefix         = local.ssm_prefix
+    cloudwatch_app_log_group_name    = var.cloudwatch_app_log_group_name
+    cloudwatch_system_log_group_name = var.cloudwatch_system_log_group_name
     init_sql_b64       = base64encode(file("${path.root}/../../devops/docker/postgres/init.sql"))
     nginx_conf_b64     = base64encode(file("${path.root}/../../devops/docker/nginx/nginx.prod.conf"))
     compose_b64        = base64encode(file("${path.root}/../../docker-compose.ecr.yaml"))

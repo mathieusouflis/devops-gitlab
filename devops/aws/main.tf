@@ -8,11 +8,30 @@ locals {
   ecr_repository_uri = "${local.ecr_registry}/${split("repository/", var.ecr_repository_arn)[1]}"
 }
 
+module "s3_logs" {
+  source = "./modules/s3_logs"
+
+  environment        = var.environment
+  bucket_name        = var.logs_bucket_name
+  access_logs_prefix = var.alb_access_logs_prefix
+  expiration_days    = var.logs_bucket_expiration_days
+}
+
+module "cloudwatch" {
+  source = "./modules/cloudwatch"
+
+  environment               = var.environment
+  retention_in_days         = var.cloudwatch_log_retention_days
+  autoscaling_group_name    = "asg-${var.environment}"
+  alb_arn_suffix            = module.alb.arn_suffix
+  target_group_arn_suffix   = module.alb.target_group_arn_suffix
+  alarm_notification_emails = var.alarm_notification_emails
+}
+
 module "iam" {
-  source              = "./modules/iam"
-  environment         = var.environment
-  ecr_repository_arn  = var.ecr_repository_arn
-  logs_bucket_name    = var.logs_bucket_name
+  source             = "./modules/iam"
+  environment        = var.environment
+  ecr_repository_arn = var.ecr_repository_arn
 }
 
 module "vpc" {
@@ -52,10 +71,14 @@ module "vpc" {
 }
 
 module "alb" {
-  source            = "./modules/alb"
-  vpc_id            = module.vpc.vpc_id
-  public_subnet_ids = module.vpc.public_subnets
-  environment       = var.environment
+  source                  = "./modules/alb"
+  vpc_id                  = module.vpc.vpc_id
+  public_subnet_ids       = module.vpc.public_subnets
+  environment             = var.environment
+  access_logs_bucket_name = module.s3_logs.bucket_id
+  access_logs_prefix      = var.alb_access_logs_prefix
+
+  depends_on = [module.s3_logs]
 }
 
 module "ssm" {
@@ -72,14 +95,16 @@ module "ssm" {
 }
 
 module "ec2" {
-  source                         = "./modules/ec2"
-  environment                    = var.environment
-  aws_region                     = var.aws_region
-  vpc_id                         = module.vpc.vpc_id
-  private_subnet_ids             = module.vpc.private_subnets
-  vpc_cidr                       = var.vpc_cidr
-  ecr_registry                   = local.ecr_registry
-  ecr_repository_uri             = local.ecr_repository_uri
-  ecr_read_instance_profile_name = module.iam.ecr_read_instance_profile_name
-  target_group_arn               = module.alb.target_group_arn
+  source                           = "./modules/ec2"
+  environment                      = var.environment
+  aws_region                       = var.aws_region
+  vpc_id                           = module.vpc.vpc_id
+  private_subnet_ids               = module.vpc.private_subnets
+  vpc_cidr                         = var.vpc_cidr
+  ecr_registry                     = local.ecr_registry
+  ecr_repository_uri               = local.ecr_repository_uri
+  ecr_read_instance_profile_name   = module.iam.ecr_read_instance_profile_name
+  cloudwatch_app_log_group_name    = module.cloudwatch.app_log_group_name
+  cloudwatch_system_log_group_name = module.cloudwatch.system_log_group_name
+  target_group_arn                 = module.alb.target_group_arn
 }
