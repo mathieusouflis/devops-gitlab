@@ -5,7 +5,8 @@ resource "aws_vpc" "vpc" {
   enable_dns_support   = true
   enable_dns_hostnames = true
   tags = {
-    "Name" = "vpc-mathieu"
+    Name = "vpc-${var.environment}"
+    Env  = var.environment
   }
 }
 
@@ -36,7 +37,8 @@ resource "aws_subnet" "subnet_public" {
   availability_zone       = each.value.az
   map_public_ip_on_launch = true
   tags = {
-    "Name" = each.value.name
+    Name = "${var.environment}-${each.value.name}"
+    Env  = var.environment
   }
 }
 
@@ -46,20 +48,23 @@ resource "aws_subnet" "subnet_private" {
   cidr_block        = each.value.cidr
   availability_zone = each.value.az
   tags = {
-    "Name" = each.value.name
+    Name = "${var.environment}-${each.value.name}"
+    Env  = var.environment
   }
 }
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.vpc.id
   tags = {
-    "Name" = "igw-mathieu"
+    Name = "igw-${var.environment}"
+    Env  = var.environment
   }
 }
 
 resource "aws_eip" "nat" {
   domain = "vpc"
   tags = {
-    "Name" = "eip-nat-mathieu"
+    Name = "eip-nat-${var.environment}"
+    Env  = var.environment
   }
   depends_on = [aws_internet_gateway.igw]
 }
@@ -69,7 +74,8 @@ resource "aws_nat_gateway" "ngw" {
   subnet_id     = aws_subnet.subnet_public[keys(aws_subnet.subnet_public)[0]].id
   allocation_id = aws_eip.nat.id
   tags = {
-    "Name" = "ngw-mathieu"
+    Name = "ngw-${var.environment}"
+    Env  = var.environment
   }
   depends_on = [aws_internet_gateway.igw]
 }
@@ -85,7 +91,8 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    "Name" = "public-mathieu"
+    Name = "rtb-public-${var.environment}"
+    Env  = var.environment
   }
 }
 
@@ -105,7 +112,8 @@ resource "aws_route_table" "private" {
   }
 
   tags = {
-    "Name" = "private-mathieu"
+    Name = "rtb-private-${var.environment}"
+    Env  = var.environment
   }
 }
 

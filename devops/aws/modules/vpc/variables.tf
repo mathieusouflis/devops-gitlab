@@ -1,3 +1,8 @@
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+}
+
 variable "az1" {
   type        = string
   description = "Availability Zone 1"

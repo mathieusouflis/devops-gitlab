@@ -16,9 +16,10 @@ module "iam" {
 }
 
 module "vpc" {
-  source = "./modules/vpc"
-  az1    = var.az1
-  az2    = var.az2
+  source      = "./modules/vpc"
+  environment = var.environment
+  az1         = var.az1
+  az2         = var.az2
   public_subnets_config = {
     "subnet_public_1" = {
       name   = "subnet_public_1"
