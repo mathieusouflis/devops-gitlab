@@ -33,11 +33,17 @@ jobs:
               --query 'images[0].imageManifest' \
               --output text)
 
-            aws ecr put-image \
+            PUT_OUTPUT=$(aws ecr put-image \
               --repository-name "$REPO_NAME" \
               --image-tag "${SERVICE}-production" \
               --image-manifest "$MANIFEST" \
-              --region "${{ vars.AWS_ECR_REGION }}"
+              --region "${{ vars.AWS_ECR_REGION }}" 2>&1) || {
+              if echo "$PUT_OUTPUT" | grep -q "ImageAlreadyExistsException"; then
+                echo "${SERVICE}-production already up to date, skipping"
+              else
+                echo "$PUT_OUTPUT" >&2; exit 1
+              fi
+            }
 
             echo "Promoted ${SERVICE}-staging → ${SERVICE}-production"
           done

@@ -65,13 +65,19 @@ prune: ## Run docker system prune on unused Docker data
 TG_STAGING_DIR := devops/live/staging
 TG_PROD_DIR    := devops/live/prod
 
-.PHONY: deploy-staging deploy-prod destroy-staging destroy-prod _tg-apply _tg-destroy
+.PHONY: deploy-staging deploy-prod destroy-staging destroy-prod replace-lt-staging replace-lt-prod _tg-apply _tg-replace _tg-destroy
 
 deploy-staging: ## Run terragrunt apply for staging (reads creds from .env)
 	@$(MAKE) _tg-apply TG_DIR=$(TG_STAGING_DIR)
 
 deploy-prod: ## Run terragrunt apply for production (reads creds from .env)
 	@$(MAKE) _tg-apply TG_DIR=$(TG_PROD_DIR)
+
+replace-lt-staging: ## Force-recreate staging launch template (fixes stale user_data)
+	@$(MAKE) _tg-replace TG_DIR=$(TG_STAGING_DIR)
+
+replace-lt-prod: ## Force-recreate production launch template (fixes stale user_data)
+	@$(MAKE) _tg-replace TG_DIR=$(TG_PROD_DIR)
 
 destroy-staging: ## Run terragrunt destroy for staging (reads creds from .env)
 	@$(MAKE) _tg-destroy TG_DIR=$(TG_STAGING_DIR)
@@ -86,10 +92,22 @@ _tg-apply:
 	cd $(TG_DIR) && \
 	AWS_ACCESS_KEY_ID="$(AWS_ACCESS_KEY_ID)" \
 	AWS_SECRET_ACCESS_KEY="$(AWS_SECRET_ACCESS_KEY)" \
-	TF_VAR_app_postgres_user="$(POSTGRES_USER)" \
-	TF_VAR_app_postgres_password="$(POSTGRES_PASSWORD)" \
+	TF_VAR_app_postgres_user=$(POSTGRES_USER) \
+	TF_VAR_app_postgres_password=$(POSTGRES_PASSWORD) \
 	TF_VAR_ecr_repository_arn="$(ECR_REPOSITORY_ARN)" \
 	terragrunt apply --auto-approve
+
+_tg-replace:
+	$(if $(TG_DIR),,$(error TG_DIR is not set))
+	$(if $(AWS_ACCESS_KEY_ID),,$(error AWS_ACCESS_KEY_ID is not set — add it to .env))
+	$(if $(AWS_SECRET_ACCESS_KEY),,$(error AWS_SECRET_ACCESS_KEY is not set — add it to .env))
+	cd $(TG_DIR) && \
+	AWS_ACCESS_KEY_ID="$(AWS_ACCESS_KEY_ID)" \
+	AWS_SECRET_ACCESS_KEY="$(AWS_SECRET_ACCESS_KEY)" \
+	TF_VAR_app_postgres_user=$(POSTGRES_USER) \
+	TF_VAR_app_postgres_password=$(POSTGRES_PASSWORD) \
+	TF_VAR_ecr_repository_arn="$(ECR_REPOSITORY_ARN)" \
+	terragrunt apply -replace=module.ec2.aws_launch_template.prod --auto-approve
 
 _tg-destroy:
 	$(if $(TG_DIR),,$(error TG_DIR is not set))
@@ -100,8 +118,8 @@ _tg-destroy:
 	cd $(TG_DIR) && \
 	AWS_ACCESS_KEY_ID="$(AWS_ACCESS_KEY_ID)" \
 	AWS_SECRET_ACCESS_KEY="$(AWS_SECRET_ACCESS_KEY)" \
-	TF_VAR_app_postgres_user="$(POSTGRES_USER)" \
-	TF_VAR_app_postgres_password="$(POSTGRES_PASSWORD)" \
+	TF_VAR_app_postgres_user=$(POSTGRES_USER) \
+	TF_VAR_app_postgres_password=$(POSTGRES_PASSWORD) \
 	TF_VAR_ecr_repository_arn="$(ECR_REPOSITORY_ARN)" \
 	terragrunt destroy --auto-approve
 
