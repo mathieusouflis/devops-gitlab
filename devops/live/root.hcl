@@ -1,9 +1,9 @@
 locals {
   common_inputs = {
-    aws_region = "eu-north-1"
+    aws_region = "eu-south-2"
     vpc_cidr   = "10.0.0.0/16"
-    az1        = "eu-north-1a"
-    az2        = "eu-north-1b"
+    az1        = "eu-south-2a"
+    az2        = "eu-south-2b"
 
     logs_bucket_name       = "devops-project-group1-logs"
     app_postgres_user      = get_env("TF_VAR_app_postgres_user", "change-me")

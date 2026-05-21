@@ -1,8 +1,8 @@
-aws_region = "eu-north-1"
+aws_region = "eu-south-2"
 
 vpc_cidr = "10.0.0.0/16"
-az1      = "eu-north-1a"
-az2      = "eu-north-1b"
+az1      = "eu-south-2a"
+az2      = "eu-south-2b"
 
 ecr_repository_arn = "arn:aws:ecr:eu-north-1:622333992348:repository/group1/devops-project"
 

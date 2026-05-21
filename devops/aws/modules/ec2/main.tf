@@ -21,7 +21,7 @@ locals {
 
 # Security Group for EC2 instances
 resource "aws_security_group" "ec2_prod" {
-  name        = "tsg-ec2-${var.environment}"
+  name        = "W2A1-tsg-ec2-${var.environment}"
   description = "${upper(var.environment)} EC2 - HTTP from VPC (ALB), all outbound"
   vpc_id      = var.vpc_id
 
@@ -41,14 +41,14 @@ resource "aws_security_group" "ec2_prod" {
   }
 
   tags = {
-    Name = "tsg-ec2-${var.environment}"
+    Name = "W2A1-tsg-ec2-${var.environment}"
     Env  = var.environment
   }
 }
 
 # Launch Template
 resource "aws_launch_template" "prod" {
-  name_prefix   = "lt-${var.environment}-"
+  name_prefix   = "W2A1-lt-${var.environment}-"
   image_id      = data.aws_ami.debian.id
   instance_type = "t3.micro"
 
@@ -78,7 +78,7 @@ resource "aws_launch_template" "prod" {
   tag_specifications {
     resource_type = "instance"
     tags = {
-      Name = "ec2-${var.environment}"
+      Name = "W2A1-ec2-${var.environment}"
       Env  = var.environment
     }
   }
@@ -86,7 +86,7 @@ resource "aws_launch_template" "prod" {
   tag_specifications {
     resource_type = "volume"
     tags = {
-      Name = "ec2-${var.environment}-volume"
+      Name = "W2A1-ec2-${var.environment}-volume"
       Env  = var.environment
     }
   }
@@ -98,7 +98,7 @@ resource "aws_launch_template" "prod" {
 
 # Auto Scaling Group
 resource "aws_autoscaling_group" "prod" {
-  name                = "asg-${var.environment}"
+  name                = "W2A1-asg-${var.environment}"
   desired_capacity    = 2
   min_size            = 1
   max_size            = 2
@@ -112,7 +112,7 @@ resource "aws_autoscaling_group" "prod" {
 
   tag {
     key                 = "Name"
-    value               = "ec2-${var.environment}"
+    value               = "W2A1-ec2-${var.environment}"
     propagate_at_launch = true
   }
 

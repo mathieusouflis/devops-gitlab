@@ -61,6 +61,50 @@ prune: ## Run docker system prune on unused Docker data
 	@echo 'Running docker system prune -f'
 	docker system prune -f
 
+# Terragrunt deploy (local) — set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, ECR_REPOSITORY_ARN in .env
+TG_STAGING_DIR := devops/live/staging
+TG_PROD_DIR    := devops/live/prod
+
+.PHONY: deploy-staging deploy-prod destroy-staging destroy-prod _tg-apply _tg-destroy
+
+deploy-staging: ## Run terragrunt apply for staging (reads creds from .env)
+	@$(MAKE) _tg-apply TG_DIR=$(TG_STAGING_DIR)
+
+deploy-prod: ## Run terragrunt apply for production (reads creds from .env)
+	@$(MAKE) _tg-apply TG_DIR=$(TG_PROD_DIR)
+
+destroy-staging: ## Run terragrunt destroy for staging (reads creds from .env)
+	@$(MAKE) _tg-destroy TG_DIR=$(TG_STAGING_DIR)
+
+destroy-prod: ## Run terragrunt destroy for production (reads creds from .env)
+	@$(MAKE) _tg-destroy TG_DIR=$(TG_PROD_DIR)
+
+_tg-apply:
+	$(if $(TG_DIR),,$(error TG_DIR is not set))
+	$(if $(AWS_ACCESS_KEY_ID),,$(error AWS_ACCESS_KEY_ID is not set — add it to .env))
+	$(if $(AWS_SECRET_ACCESS_KEY),,$(error AWS_SECRET_ACCESS_KEY is not set — add it to .env))
+	cd $(TG_DIR) && \
+	AWS_ACCESS_KEY_ID="$(AWS_ACCESS_KEY_ID)" \
+	AWS_SECRET_ACCESS_KEY="$(AWS_SECRET_ACCESS_KEY)" \
+	TF_VAR_app_postgres_user="$(POSTGRES_USER)" \
+	TF_VAR_app_postgres_password="$(POSTGRES_PASSWORD)" \
+	TF_VAR_ecr_repository_arn="$(ECR_REPOSITORY_ARN)" \
+	terragrunt apply --auto-approve
+
+_tg-destroy:
+	$(if $(TG_DIR),,$(error TG_DIR is not set))
+	$(if $(AWS_ACCESS_KEY_ID),,$(error AWS_ACCESS_KEY_ID is not set — add it to .env))
+	$(if $(AWS_SECRET_ACCESS_KEY),,$(error AWS_SECRET_ACCESS_KEY is not set — add it to .env))
+	@echo "WARNING: this will destroy all resources in $(TG_DIR). Press Ctrl+C within 5s to abort."
+	@sleep 5
+	cd $(TG_DIR) && \
+	AWS_ACCESS_KEY_ID="$(AWS_ACCESS_KEY_ID)" \
+	AWS_SECRET_ACCESS_KEY="$(AWS_SECRET_ACCESS_KEY)" \
+	TF_VAR_app_postgres_user="$(POSTGRES_USER)" \
+	TF_VAR_app_postgres_password="$(POSTGRES_PASSWORD)" \
+	TF_VAR_ecr_repository_arn="$(ECR_REPOSITORY_ARN)" \
+	terragrunt destroy --auto-approve
+
 # GitLab Runner (local)
 RUNNER_COMPOSE ?= docker compose -f docker-compose.runner.yaml
 

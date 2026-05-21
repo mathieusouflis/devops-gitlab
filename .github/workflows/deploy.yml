@@ -19,35 +19,13 @@ jobs:
     environment: ${{ inputs.environment }}
     timeout-minutes: 20
     permissions:
-      contents: write
-    env:
-      TG_DIR: ${{ inputs.environment == 'production' && 'devops/live/prod' || 'devops/live/staging' }}
-      TF_VAR_ecr_repository_arn: ${{ vars.AWS_ECR_REPOSITORY_ARN }}
-      TF_VAR_app_postgres_user: ${{ vars.POSTGRES_USER }}
-      TF_VAR_app_postgres_password: ${{ vars.POSTGRES_PASSWORD }}
+      contents: read
     steps:
-      - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_ECR_REGION }}
-      - uses: hashicorp/setup-terraform@v3
-      - name: Install Terragrunt
-        run: |
-          LATEST=$(curl -s https://api.github.com/repos/gruntwork-io/terragrunt/releases/latest | jq -r '.tag_name')
-          curl -Lo /usr/local/bin/terragrunt "https://github.com/gruntwork-io/terragrunt/releases/download/${LATEST}/terragrunt_linux_amd64"
-          chmod +x /usr/local/bin/terragrunt
-      - name: Terragrunt apply
-        run: terragrunt apply --auto-approve
-        working-directory: ${{ env.TG_DIR }}
-      - name: Commit updated state
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "$TG_DIR/terraform.tfstate"
-          git diff --cached --quiet || git commit -m "chore(terraform): update state for ${{ inputs.environment }} [skip ci]"
-          git push
       - name: Trigger ASG instance refresh
         run: |
           REFRESH_ID=$(aws autoscaling start-instance-refresh \

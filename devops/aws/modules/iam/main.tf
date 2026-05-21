@@ -21,11 +21,15 @@ data "aws_iam_policy_document" "ec2_assume_role" {
 # EC2-ECR-ReadRole
 
 resource "aws_iam_role" "ecr_read" {
-  name               = "EC2-ECR-ReadRole-${var.environment}"
+  name               = "W2A1-EC2-ECR-ReadRole-${var.environment}"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
   tags = {
-    Name = "EC2-ECR-ReadRole-${var.environment}"
+    Name = "W2A1-EC2-ECR-ReadRole-${var.environment}"
     Env  = var.environment
+  }
+
+  lifecycle {
+    ignore_changes = all
   }
 }
 
@@ -71,8 +75,12 @@ resource "aws_iam_role_policy_attachment" "ecr_read_ssm" {
 }
 
 resource "aws_iam_policy" "ecr_read" {
-  name   = "EC2-ECR-ReadPolicy-${var.environment}"
+  name   = "W2A1-EC2-ECR-ReadPolicy-${var.environment}"
   policy = data.aws_iam_policy_document.ecr_read.json
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "ecr_read" {
@@ -81,18 +89,26 @@ resource "aws_iam_role_policy_attachment" "ecr_read" {
 }
 
 resource "aws_iam_instance_profile" "ecr_read" {
-  name = "EC2-ECR-ReadRole-${var.environment}-profile"
+  name = "W2A1-EC2-ECR-ReadRole-${var.environment}-profile"
   role = aws_iam_role.ecr_read.name
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # EC2-S3-WriteRole
 
 resource "aws_iam_role" "s3_write" {
-  name               = "EC2-S3-WriteRole-${var.environment}"
+  name               = "W2A1-EC2-S3-WriteRole-${var.environment}"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
   tags = {
-    Name = "EC2-S3-WriteRole-${var.environment}"
+    Name = "W2A1-EC2-S3-WriteRole-${var.environment}"
     Env  = var.environment
+  }
+
+  lifecycle {
+    ignore_changes = all
   }
 }
 
@@ -107,8 +123,12 @@ data "aws_iam_policy_document" "s3_write" {
 }
 
 resource "aws_iam_policy" "s3_write" {
-  name   = "EC2-S3-WritePolicy-${var.environment}"
+  name   = "W2A1-EC2-S3-WritePolicy-${var.environment}"
   policy = data.aws_iam_policy_document.s3_write.json
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "s3_write" {
@@ -117,6 +137,10 @@ resource "aws_iam_role_policy_attachment" "s3_write" {
 }
 
 resource "aws_iam_instance_profile" "s3_write" {
-  name = "EC2-S3-WriteRole-${var.environment}-profile"
+  name = "W2A1-EC2-S3-WriteRole-${var.environment}-profile"
   role = aws_iam_role.s3_write.name
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
