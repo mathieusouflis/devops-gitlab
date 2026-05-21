@@ -6,7 +6,7 @@ on:
       - main
       - develop
       - staging
-      - 'feature/**'
+      - "feature/**"
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -26,6 +26,8 @@ jobs:
   publish:
     needs: [build, test]
     if: github.ref_name == 'main' || github.ref_name == 'staging'
+    permissions:
+      contents: write
     uses: ./.github/workflows/publish.yml
     secrets: inherit
     with:
@@ -34,6 +36,8 @@ jobs:
   deploy:
     needs: publish
     if: github.ref_name == 'staging'
+    permissions:
+      contents: write
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
     with:

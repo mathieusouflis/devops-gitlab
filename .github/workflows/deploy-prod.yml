@@ -5,6 +5,8 @@ on:
 
 jobs:
   deploy:
+    permissions:
+      contents: write
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
     with:
