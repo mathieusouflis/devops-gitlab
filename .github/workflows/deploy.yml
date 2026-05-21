@@ -28,8 +28,9 @@ jobs:
           aws-region: ${{ vars.AWS_ECR_REGION }}
       - name: Trigger ASG instance refresh
         run: |
+          ASG_NAME="W2A1-asg-${{ inputs.environment }}"
           REFRESH_ID=$(aws autoscaling start-instance-refresh \
-            --auto-scaling-group-name "${{ vars.AWS_ASG_NAME }}" \
+            --auto-scaling-group-name "$ASG_NAME" \
             --preferences '{"MinHealthyPercentage": 50}' \
             --region "${{ vars.AWS_ECR_REGION }}" \
             --query 'InstanceRefreshId' \
@@ -37,7 +38,7 @@ jobs:
           echo "Instance refresh started: $REFRESH_ID"
           while true; do
             STATUS=$(aws autoscaling describe-instance-refreshes \
-              --auto-scaling-group-name "${{ vars.AWS_ASG_NAME }}" \
+              --auto-scaling-group-name "$ASG_NAME" \
               --instance-refresh-ids "$REFRESH_ID" \
               --region "${{ vars.AWS_ECR_REGION }}" \
               --query 'InstanceRefreshes[0].Status' \

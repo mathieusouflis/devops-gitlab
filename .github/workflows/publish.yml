@@ -30,7 +30,11 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_ECR_REGION }}
-      - uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to ECR
+        run: |
+          REGISTRY=$(echo "${{ vars.AWS_ECR_REPOSITORY_URI }}" | cut -d/ -f1)
+          REGION=$(echo "$REGISTRY" | cut -d. -f4)
+          aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$REGISTRY"
       - name: Set image tags
         run: |
           SHORT_SHA="${GITHUB_SHA:0:8}"
