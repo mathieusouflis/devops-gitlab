@@ -90,11 +90,7 @@ e2e-test:
     - pnpm install --frozen-lockfile
     - docker compose -f docker-compose.prod.yaml up -d db backend frontend nginx
     - sleep 10
-    - export FRONTEND_URL="http://docker"
-    - export E2E_BASE_URL="http://docker"
-    - export API_URL="http://docker"
-    - export BACKEND_URL="http://docker"
-    - pnpm run test:e2e
+    - FRONTEND_URL="http://docker" E2E_BASE_URL="http://docker" API_URL="http://docker" BACKEND_URL="http://docker" pnpm run test_e2e
     - docker compose -f docker-compose.prod.yaml down
   artifacts:
     when: always
