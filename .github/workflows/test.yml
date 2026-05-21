@@ -51,6 +51,9 @@ jobs:
           restore-keys: turbo-${{ github.ref_name }}-
       - run: pnpm install --frozen-lockfile
       - run: docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml up -d db backend
+      - name: Debug container logs
+        if: failure()
+        run: docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml logs db backend
       - run: sleep 5
       - run: cd backend && pnpm run test:integration
       - run: docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml down
@@ -81,6 +84,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml up -d db backend frontend nginx
+      - name: Debug container logs
+        if: failure()
+        run: docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml logs db backend
       - uses: actions/upload-artifact@v4
         if: always()
         with:
