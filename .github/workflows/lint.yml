@@ -10,6 +10,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate docker-compose files
+        env:
+          BACKEND_PORT: ${{ vars.BACKEND_PORT }}
+          HTTP_PORT: ${{ vars.HTTP_PORT }}
+          VITE_FRONTEND_PORT: ${{ vars.VITE_FRONTEND_PORT }}
+          VITE_FRONTEND_API_URL: ${{ vars.VITE_FRONTEND_API_URL }}
+          POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+          POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          CORS_ORIGIN: ${{ vars.CORS_ORIGIN }}
+          ECR_REPOSITORY_URI: ${{ vars.ECR_REPOSITORY_URI }}
         run: |
           find . \( -name 'docker-compose*.yml' -o -name 'docker-compose*.yaml' \) | grep -v '\.ci\.' | xargs -I {} sh -c 'docker compose -f {} config -q || (echo "Error: Failed to validate {}" && exit 1)'
           docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml config -q || (echo "Error: Failed to validate CI overlay" && exit 1)
@@ -20,9 +30,12 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-      - uses: hadolint/hadolint-action@v3.1.0
-        with:
-          recursive: true
+      - name: Install hadolint
+        run: |
+          wget -q -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64
+          chmod +x /usr/local/bin/hadolint
+      - name: Lint Dockerfiles
+        run: find . \( -name "Dockerfile" -o -name "Dockerfile.*" \) -not -path "./.git/*" | xargs hadolint
 
   yaml:
     name: lint:yaml
@@ -39,8 +52,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: latest
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
