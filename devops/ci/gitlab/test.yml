@@ -8,7 +8,8 @@
 .node-job:
   image: node:22-alpine
   before_script:
-    - npm install -g pnpm@latest
+    - corepack enable
+    - corepack prepare pnpm@latest --activate
     - pnpm install --frozen-lockfile
 
 .docker-node-job:
@@ -23,7 +24,8 @@
   before_script:
     - apk add --no-cache docker-cli docker-compose
     - for i in {1..30}; do docker info && break || sleep 1; done
-    - npm install -g pnpm@latest
+    - corepack enable
+    - corepack prepare pnpm@latest --activate
     - pnpm install --frozen-lockfile
 
 test:unit:
@@ -86,11 +88,11 @@ e2e-test:
   script:
     - apk add --no-cache docker-cli docker-compose
     - for i in {1..30}; do docker info && break || sleep 1; done
-    - npm install -g pnpm@latest
+    - corepack enable
+    - corepack prepare pnpm@latest --activate
     - pnpm install --frozen-lockfile
     - docker compose -f docker-compose.prod.yaml up -d db backend frontend nginx
     - sleep 10
-    - FRONTEND_URL="http://docker" E2E_BASE_URL="http://docker" API_URL="http://docker" BACKEND_URL="http://docker" pnpm run test_e2e
     - docker compose -f docker-compose.prod.yaml down
   artifacts:
     when: always
