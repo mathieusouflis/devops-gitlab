@@ -94,6 +94,8 @@ e2e-test:
     - export E2E_BASE_URL="http://docker"
     - export API_URL="http://docker"
     - export BACKEND_URL="http://docker"
+    - pnpm run test:e2e
+    - docker compose -f docker-compose.prod.yaml down
   artifacts:
     when: always
     reports:
