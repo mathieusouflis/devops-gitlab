@@ -8,5 +8,5 @@ terraform {
 
 inputs = {
   environment        = "production"
-  ecr_repository_arn = get_env("AWS_ECR_REPOSITORY_ARN", "")
+  ecr_repository_arn = get_env("TF_VAR_ecr_repository_arn", "")
 }

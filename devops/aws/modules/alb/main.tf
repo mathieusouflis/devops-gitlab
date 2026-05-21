@@ -1,11 +1,6 @@
-locals {
-  name_suffix = var.environment
-  env_label   = var.environment
-}
-
 resource "aws_security_group" "alb" {
-  name        = "tsg-alb-${local.name_suffix}"
-  description = "ALB ${upper(local.name_suffix)} - HTTP from internet, outbound to VPC"
+  name        = "tsg-alb-${var.environment}"
+  description = "ALB ${upper(var.environment)} - HTTP from internet, outbound to VPC"
   vpc_id      = var.vpc_id
 
   ingress {
@@ -24,13 +19,13 @@ resource "aws_security_group" "alb" {
   }
 
   tags = {
-    Name = "tsg-alb-${local.name_suffix}"
-    Env  = local.env_label
+    Name = "tsg-alb-${var.environment}"
+    Env  = var.environment
   }
 }
 
 resource "aws_lb" "prod" {
-  name               = "alb-${local.name_suffix}"
+  name               = "alb-${var.environment}"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
@@ -39,13 +34,13 @@ resource "aws_lb" "prod" {
   # TODO(ops#19): enable access_logs once the S3 logs bucket exists
 
   tags = {
-    Name = "alb-${local.name_suffix}"
-    Env  = local.env_label
+    Name = "alb-${var.environment}"
+    Env  = var.environment
   }
 }
 
 resource "aws_lb_target_group" "prod" {
-  name        = "tg-${local.name_suffix}"
+  name        = "tg-${var.environment}"
   port        = 80
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
@@ -62,8 +57,8 @@ resource "aws_lb_target_group" "prod" {
   }
 
   tags = {
-    Name = "tg-${local.name_suffix}"
-    Env  = local.env_label
+    Name = "tg-${var.environment}"
+    Env  = var.environment
   }
 }
 

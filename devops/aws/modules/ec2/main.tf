@@ -15,7 +15,7 @@ data "aws_ami" "debian" {
 }
 
 locals {
-  env_label   = var.environment
+
   ssm_prefix  = "/group1/${var.environment}"
 }
 
@@ -42,7 +42,7 @@ resource "aws_security_group" "ec2_prod" {
 
   tags = {
     Name = "tsg-ec2-${var.environment}"
-    Env  = local.env_label
+    Env  = var.environment
   }
 }
 
@@ -79,7 +79,7 @@ resource "aws_launch_template" "prod" {
     resource_type = "instance"
     tags = {
       Name = "ec2-${var.environment}"
-      Env  = local.env_label
+      Env  = var.environment
     }
   }
 
@@ -87,7 +87,7 @@ resource "aws_launch_template" "prod" {
     resource_type = "volume"
     tags = {
       Name = "ec2-${var.environment}-volume"
-      Env  = local.env_label
+      Env  = var.environment
     }
   }
 
@@ -118,7 +118,7 @@ resource "aws_autoscaling_group" "prod" {
 
   tag {
     key                 = "Env"
-    value               = local.env_label
+    value               = var.environment
     propagate_at_launch = true
   }
 

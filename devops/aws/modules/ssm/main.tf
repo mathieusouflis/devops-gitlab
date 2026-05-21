@@ -1,6 +1,11 @@
-  resource "aws_ssm_parameter" "postgres_user" {
-  name  = "${var.environment}/POSTGRES_USER"
+locals {
+  ssm_prefix = "/group1/${var.environment}"
+}
+
+resource "aws_ssm_parameter" "postgres_user" {
+  name  = "${local.ssm_prefix}/POSTGRES_USER"
   type  = "SecureString"
+  overwrite = true
   value = var.postgres_user # placeholder — set the real value manually after first apply
 
   lifecycle {
@@ -9,8 +14,9 @@
 }
 
 resource "aws_ssm_parameter" "postgres_password" {
-  name  = "${var.environment}/POSTGRES_PASSWORD"
+  name  = "${local.ssm_prefix}/POSTGRES_PASSWORD"
   type  = "SecureString"
+  overwrite = true
   value = var.postgres_password # placeholder — set the real value manually after first apply
 
   lifecycle {
@@ -19,37 +25,43 @@ resource "aws_ssm_parameter" "postgres_password" {
 }
 
 resource "aws_ssm_parameter" "postgres_db" {
-  name  = "${var.environment}/POSTGRES_DB"
+  name  = "${local.ssm_prefix}/POSTGRES_DB"
   type  = "String"
+  overwrite = true
   value = var.postgres_db
 }
 
 resource "aws_ssm_parameter" "backend_port" {
-  name  = "${var.environment}/BACKEND_PORT"
+  name  = "${local.ssm_prefix}/BACKEND_PORT"
   type  = "String"
+  overwrite = true
   value = var.backend_port
 }
 
 resource "aws_ssm_parameter" "cors_origin" {
-  name  = "${var.environment}/CORS_ORIGIN"
+  name  = "${local.ssm_prefix}/CORS_ORIGIN"
   type  = "String"
+  overwrite = true
   value = "http://${var.alb_dns_name}"
 }
 
 resource "aws_ssm_parameter" "vite_frontend_port" {
-  name  = "${var.environment}/VITE_FRONTEND_PORT"
+  name  = "${local.ssm_prefix}/VITE_FRONTEND_PORT"
   type  = "String"
+  overwrite = true
   value = var.vite_frontend_port
 }
 
 resource "aws_ssm_parameter" "http_port" {
-  name  = "${var.environment}/HTTP_PORT"
+  name  = "${local.ssm_prefix}/HTTP_PORT"
   type  = "String"
+  overwrite = true
   value = var.http_port
 }
 
 resource "aws_ssm_parameter" "vite_frontend_api_url" {
-  name  = "${var.environment}/VITE_FRONTEND_API_URL"
+  name  = "${local.ssm_prefix}/VITE_FRONTEND_API_URL"
   type  = "String"
+  overwrite = true
   value = "http://${var.alb_dns_name}/api"
 }
