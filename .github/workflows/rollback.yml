@@ -1,0 +1,171 @@
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to rollback
+        type: choice
+        required: true
+        options:
+          - production
+          - staging
+      rollback_tag:
+        description: Tag suffix to restore (full SHA or short SHA, without backend-/frontend-)
+        type: string
+        required: true
+
+jobs:
+  rollback:
+    name: rollback (${{ github.event.inputs.environment }} -> ${{ github.event.inputs.rollback_tag }})
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    timeout-minutes: 30
+    env:
+      ROLLBACK_TAG: ${{ github.event.inputs.rollback_tag }}
+      AWS_REGION: ${{ vars.AWS_ECR_REGION }}
+      ASG_NAME: ${{ vars.AWS_ASG_NAME }}
+      TARGET_GROUP_ARN: ${{ vars.AWS_TARGET_GROUP_ARN }}
+      ECR_REPOSITORY_URI: ${{ vars.AWS_ECR_REPOSITORY_URI }}
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_ECR_REGION }}
+      - name: Validate rollback images exist in ECR
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPOSITORY_NAME="${ECR_REPOSITORY_URI#*/}"
+          aws ecr describe-images \
+            --region "$AWS_REGION" \
+            --repository-name "$REPOSITORY_NAME" \
+            --image-ids imageTag="backend-${ROLLBACK_TAG}" >/dev/null
+          aws ecr describe-images \
+            --region "$AWS_REGION" \
+            --repository-name "$REPOSITORY_NAME" \
+            --image-ids imageTag="frontend-${ROLLBACK_TAG}" >/dev/null
+          echo "Rollback tag exists for backend and frontend: ${ROLLBACK_TAG}"
+      - name: Roll back instances sequentially
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${TARGET_GROUP_ARN}" ]; then
+            echo "Missing required variable AWS_TARGET_GROUP_ARN"
+            exit 1
+          fi
+          mapfile -t INSTANCE_IDS < <(
+            aws autoscaling describe-auto-scaling-groups \
+              --region "$AWS_REGION" \
+              --auto-scaling-group-names "$ASG_NAME" \
+              --query 'AutoScalingGroups[0].Instances[?LifecycleState==`InService`].InstanceId' \
+              --output text | tr '\t' '\n'
+          )
+          if [ "${#INSTANCE_IDS[@]}" -eq 0 ]; then
+            echo "No InService instances found in ${ASG_NAME}"
+            exit 1
+          fi
+          wait_for_target_health() {
+            local instance_id="$1"
+            local desired_state="$2"
+            for _ in $(seq 1 40); do
+              state=$(
+                aws elbv2 describe-target-health \
+                  --region "$AWS_REGION" \
+                  --target-group-arn "$TARGET_GROUP_ARN" \
+                  --targets "Id=${instance_id}" \
+                  --query 'TargetHealthDescriptions[0].TargetHealth.State' \
+                  --output text 2>/dev/null || true
+              )
+              echo "Target ${instance_id} state: ${state}"
+              if [ "$desired_state" = "healthy" ] && [ "$state" = "healthy" ]; then
+                return 0
+              fi
+              if [ "$desired_state" = "drained" ] && { [ "$state" = "unused" ] || [ "$state" = "draining" ] || [ "$state" = "initial" ] || [ "$state" = "Target.NotRegistered" ] || [ "$state" = "None" ]; }; then
+                return 0
+              fi
+              sleep 5
+            done
+            return 1
+          }
+          for INSTANCE_ID in "${INSTANCE_IDS[@]}"; do
+            echo "Rolling back instance ${INSTANCE_ID}"
+            echo "Deregistering ${INSTANCE_ID} from target group"
+            aws elbv2 deregister-targets \
+              --region "$AWS_REGION" \
+              --target-group-arn "$TARGET_GROUP_ARN" \
+              --targets "Id=${INSTANCE_ID}"
+            sleep 30
+            wait_for_target_health "$INSTANCE_ID" drained || {
+              echo "Instance ${INSTANCE_ID} did not drain in time"
+              exit 1
+            }
+            COMMAND_ID=$(
+              aws ssm send-command \
+                --region "$AWS_REGION" \
+                --instance-ids "$INSTANCE_ID" \
+                --document-name "AWS-RunShellScript" \
+                --comment "Rollback to tag ${ROLLBACK_TAG}" \
+                --parameters 'commands=[
+                  "set -euo pipefail",
+                  "REGION='"$AWS_REGION"'",
+                  "REPO_URI='"$ECR_REPOSITORY_URI"'",
+                  "TAG='"$ROLLBACK_TAG"'",
+                  "aws ecr get-login-password --region \"$REGION\" | docker login --username AWS --password-stdin \"${REPO_URI%/*}\"",
+                  "docker pull \"$REPO_URI:backend-$TAG\"",
+                  "docker pull \"$REPO_URI:frontend-$TAG\"",
+                  "docker tag \"$REPO_URI:backend-$TAG\" \"$REPO_URI:backend-production\"",
+                  "docker tag \"$REPO_URI:frontend-$TAG\" \"$REPO_URI:frontend-production\"",
+                  "cd /opt/app",
+                  "docker compose -f docker-compose.ecr.yaml up -d backend frontend nginx",
+                  "curl -fsS http://localhost/health >/dev/null"
+                ]' \
+                --query 'Command.CommandId' \
+                --output text
+            )
+            echo "SSM command started: ${COMMAND_ID}"
+            while true; do
+              STATUS=$(
+                aws ssm get-command-invocation \
+                  --region "$AWS_REGION" \
+                  --command-id "$COMMAND_ID" \
+                  --instance-id "$INSTANCE_ID" \
+                  --query 'Status' \
+                  --output text
+              )
+              echo "SSM status for ${INSTANCE_ID}: ${STATUS}"
+              case "$STATUS" in
+                Success)
+                  break
+                  ;;
+                Failed|Cancelled|TimedOut)
+                  aws ssm get-command-invocation \
+                    --region "$AWS_REGION" \
+                    --command-id "$COMMAND_ID" \
+                    --instance-id "$INSTANCE_ID" \
+                    --query 'StandardErrorContent' \
+                    --output text || true
+                  exit 1
+                  ;;
+                Pending|InProgress|Delayed)
+                  sleep 5
+                  ;;
+                *)
+                  echo "Unexpected SSM status: ${STATUS}"
+                  sleep 5
+                  ;;
+              esac
+            done
+            echo "Registering ${INSTANCE_ID} back into target group"
+            aws elbv2 register-targets \
+              --region "$AWS_REGION" \
+              --target-group-arn "$TARGET_GROUP_ARN" \
+              --targets "Id=${INSTANCE_ID}"
+            wait_for_target_health "$INSTANCE_ID" healthy || {
+              echo "Instance ${INSTANCE_ID} did not become healthy in time"
+              exit 1
+            }
+            echo "Instance ${INSTANCE_ID} rollback complete"
+          done
+          echo "Rollback finished successfully for tag ${ROLLBACK_TAG}"
