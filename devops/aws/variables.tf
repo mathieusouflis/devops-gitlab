@@ -3,6 +3,16 @@ variable "aws_region" {
   type        = string
 }
 
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+
+  validation {
+    condition     = contains(["production", "staging"], var.environment)
+    error_message = "environment must be production or staging."
+  }
+}
+
 variable "vpc_cidr" {
   description = "CIDR du VPC"
   type        = string
@@ -29,7 +39,7 @@ variable "logs_bucket_name" {
   type        = string
 }
 
-# App config — written to SSM Parameter Store under /prod/*
+# App config — written to SSM Parameter Store under /<environment>/*
 
 variable "app_postgres_user" {
   description = "PostgreSQL username"

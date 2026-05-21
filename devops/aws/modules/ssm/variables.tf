@@ -1,3 +1,8 @@
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+}
+
 variable "postgres_user" {
   description = "PostgreSQL username"
   type        = string

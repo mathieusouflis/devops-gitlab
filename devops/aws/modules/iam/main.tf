@@ -1,6 +1,10 @@
 data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
 
+locals {
+  ssm_parameter_prefix = "/group1/${var.environment}"
+}
+
 # Shared trust policy
 
 data "aws_iam_policy_document" "ec2_assume_role" {
@@ -55,7 +59,7 @@ data "aws_iam_policy_document" "ecr_read" {
       "ssm:GetParameters",
       "ssm:GetParametersByPath",
     ]
-    resources = ["arn:aws:ssm:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:parameter/group1/prod/*"]
+    resources = ["arn:aws:ssm:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:parameter${local.ssm_parameter_prefix}/*"]
   }
 }
 

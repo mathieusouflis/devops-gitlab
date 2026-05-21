@@ -10,6 +10,7 @@ locals {
 
 module "iam" {
   source              = "./modules/iam"
+  environment         = var.environment
   ecr_repository_arn  = var.ecr_repository_arn
   logs_bucket_name    = var.logs_bucket_name
 }
@@ -53,11 +54,13 @@ module "alb" {
   source            = "./modules/alb"
   vpc_id            = module.vpc.vpc_id
   public_subnet_ids = module.vpc.public_subnets
+  environment       = var.environment
 }
 
 module "ssm" {
   source = "./modules/ssm"
 
+  environment        = var.environment
   postgres_user      = var.app_postgres_user
   postgres_password  = var.app_postgres_password
   postgres_db        = var.app_postgres_db
@@ -69,6 +72,7 @@ module "ssm" {
 
 module "ec2" {
   source                         = "./modules/ec2"
+  environment                    = var.environment
   aws_region                     = var.aws_region
   vpc_id                         = module.vpc.vpc_id
   private_subnet_ids             = module.vpc.private_subnets
