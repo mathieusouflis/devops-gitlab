@@ -1,0 +1,75 @@
+name: Publish
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+
+jobs:
+  publish:
+    name: publish (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    timeout-minutes: 20
+    env:
+      DOCKER_BUILDKIT: "1"
+      BACKEND_PORT: ${{ vars.BACKEND_PORT }}
+      VITE_FRONTEND_PORT: ${{ vars.VITE_FRONTEND_PORT }}
+      VITE_FRONTEND_API_URL: ${{ vars.VITE_FRONTEND_API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_ECR_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+      - name: Set image tags
+        run: |
+          SHORT_SHA="${GITHUB_SHA:0:8}"
+          echo "BACKEND_SHA=${{ vars.AWS_ECR_REPOSITORY_URI }}:backend-${GITHUB_SHA}" >> $GITHUB_ENV
+          echo "BACKEND_SHORT=${{ vars.AWS_ECR_REPOSITORY_URI }}:backend-${SHORT_SHA}" >> $GITHUB_ENV
+          echo "FRONTEND_SHA=${{ vars.AWS_ECR_REPOSITORY_URI }}:frontend-${GITHUB_SHA}" >> $GITHUB_ENV
+          echo "FRONTEND_SHORT=${{ vars.AWS_ECR_REPOSITORY_URI }}:frontend-${SHORT_SHA}" >> $GITHUB_ENV
+      - name: Build backend image
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            --file devops/docker/backend/Dockerfile.backend.prod \
+            --build-arg BACKEND_PORT="$BACKEND_PORT" \
+            --tag "$BACKEND_SHA" \
+            --tag "$BACKEND_SHORT" \
+            --label "org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --label "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
+            .
+      - name: Build frontend image
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            --file devops/docker/frontend/Dockerfile.frontend.prod \
+            --build-arg FRONTEND_PORT="$VITE_FRONTEND_PORT" \
+            --build-arg VITE_FRONTEND_API_URL="$VITE_FRONTEND_API_URL" \
+            --tag "$FRONTEND_SHA" \
+            --tag "$FRONTEND_SHORT" \
+            --label "org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --label "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
+            .
+      - name: Push images
+        run: |
+          docker push "$BACKEND_SHA"
+          docker push "$BACKEND_SHORT"
+          docker push "$FRONTEND_SHA"
+          docker push "$FRONTEND_SHORT"
+          docker tag "$BACKEND_SHA" "${{ vars.AWS_ECR_REPOSITORY_URI }}:backend"
+          docker tag "$FRONTEND_SHA" "${{ vars.AWS_ECR_REPOSITORY_URI }}:frontend"
+          docker push "${{ vars.AWS_ECR_REPOSITORY_URI }}:backend"
+          docker push "${{ vars.AWS_ECR_REPOSITORY_URI }}:frontend"

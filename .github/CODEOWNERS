@@ -1,0 +1,16 @@
+# CODEOWNERS
+# Owners are automatically requested for review when a PR modifies matched files.
+# Last matching rule takes precedence.
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default: all files
+* @maintainer
+
+# CI/CD and GitHub config
+# .github/ @org/devops
+
+# Documentation
+# /docs/ @org/docs-team
+
+# Security-sensitive paths
+# /src/auth/ @org/security-team

@@ -1,0 +1,49 @@
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+
+jobs:
+  deploy:
+    name: deploy (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    timeout-minutes: 20
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_ECR_REGION }}
+      - name: Trigger ASG instance refresh
+        run: |
+          REFRESH_ID=$(aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name "${{ vars.AWS_ASG_NAME }}" \
+            --preferences '{"MinHealthyPercentage": 50}' \
+            --region "${{ vars.AWS_ECR_REGION }}" \
+            --query 'InstanceRefreshId' \
+            --output text)
+          echo "Instance refresh started: $REFRESH_ID"
+          while true; do
+            STATUS=$(aws autoscaling describe-instance-refreshes \
+              --auto-scaling-group-name "${{ vars.AWS_ASG_NAME }}" \
+              --instance-refresh-ids "$REFRESH_ID" \
+              --region "${{ vars.AWS_ECR_REGION }}" \
+              --query 'InstanceRefreshes[0].Status' \
+              --output text)
+            echo "Refresh status: $STATUS"
+            case "$STATUS" in
+              Successful) echo "Deploy complete."; exit 0 ;;
+              Failed|Cancelled) echo "Deploy failed with status: $STATUS"; exit 1 ;;
+              *) sleep 30 ;;
+            esac
+          done

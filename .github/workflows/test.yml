@@ -1,0 +1,131 @@
+name: Test
+
+on:
+  workflow_call:
+
+jobs:
+  unit:
+    name: test:unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: turbo-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: turbo-${{ github.ref_name }}-
+      - run: pnpm install --frozen-lockfile
+      - run: cd backend && pnpm run test:unit
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-unit
+          path: backend/junit/unit.xml
+
+  integration:
+    name: test:integration
+    runs-on: ubuntu-latest
+    env:
+      BACKEND_PORT: ${{ vars.BACKEND_PORT }}
+      POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+      POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      API_URL: http://localhost:${{ vars.BACKEND_PORT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: turbo-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: turbo-${{ github.ref_name }}-
+      - run: pnpm install --frozen-lockfile
+      - run: docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml up -d db backend
+      - run: sleep 5
+      - run: cd backend && pnpm run test:integration
+      - run: docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml down
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-integration
+          path: backend/junit/integration.xml
+
+  e2e:
+    name: e2e-test
+    runs-on: ubuntu-latest
+    env:
+      BACKEND_PORT: ${{ vars.BACKEND_PORT }}
+      POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+      POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      VITE_FRONTEND_PORT: ${{ vars.VITE_FRONTEND_PORT }}
+      VITE_FRONTEND_API_URL: ${{ vars.VITE_FRONTEND_API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: docker compose -f docker-compose.prod.yaml up -d db backend frontend nginx
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-e2e
+          path: backend/junit/e2e.xml
+
+  security-scan:
+    name: test:security-scan
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: .trivycache
+          key: trivy-${{ github.ref_name }}
+      - uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: '.'
+          exit-code: '1'
+          severity: HIGH,CRITICAL
+          cache-dir: .trivycache
+      - uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: config
+          scan-ref: devops/docker/
+          exit-code: '1'
+          severity: HIGH,CRITICAL
+
+  dependency-scan:
+    name: dependency-scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install
+      - run: pnpm audit --audit-level=high

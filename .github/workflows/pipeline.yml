@@ -1,0 +1,39 @@
+name: Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - staging
+      - 'feature/**'
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  lint:
+    uses: ./.github/workflows/lint.yml
+
+  test:
+    needs: lint
+    uses: ./.github/workflows/test.yml
+    secrets: inherit
+
+  build:
+    needs: lint
+    uses: ./.github/workflows/build.yml
+
+  publish:
+    needs: [build, test]
+    if: github.ref_name == 'main' || github.ref_name == 'staging'
+    uses: ./.github/workflows/publish.yml
+    secrets: inherit
+    with:
+      environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+
+  deploy:
+    needs: publish
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
+    with:
+      environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
