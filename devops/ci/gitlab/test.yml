@@ -86,15 +86,16 @@ e2e-test:
     - name: docker:24.0.5-dind
       alias: docker
   script:
+    - env
     - apk add --no-cache docker-cli docker-compose
     - for i in {1..30}; do docker info && break || sleep 1; done
     - corepack enable
     - corepack prepare pnpm@latest --activate
     - pnpm install --frozen-lockfile
-    - docker compose -f docker-compose.prod.yaml up -d db backend frontend nginx
+    - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml up -d
     - sleep 10
     - pnpm test:e2e
-    - docker compose -f docker-compose.prod.yaml down
+    - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml down
   artifacts:
     when: always
     reports:
