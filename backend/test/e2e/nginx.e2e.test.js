@@ -26,12 +26,7 @@ async function tryJsonArray(url) {
 
 async function findFrontendBase() {
   const candidates = [
-    process.env.FRONTEND_URL,
-    process.env.E2E_BASE_URL,
-    "http://nginx",
     process.env.HTTP_PORT ? `http://127.0.0.1:${process.env.HTTP_PORT}` : null,
-    "http://127.0.0.1:8088",
-    "http://127.0.0.1"
   ]
     .filter(Boolean)
     .map(trimSlash);
@@ -52,7 +47,6 @@ async function findFrontendBase() {
 
 async function findApiBase(frontendBase) {
   const apiCandidates = [
-    process.env.API_URL,
     process.env.BACKEND_PORT ? `http://127.0.0.1:${process.env.BACKEND_PORT}` : null,
     ...(process.env.VITE_FRONTEND_API_URL
       ? [/^\d+$/.test(process.env.VITE_FRONTEND_API_URL)

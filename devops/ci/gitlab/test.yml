@@ -15,6 +15,7 @@
 .docker-node-job:
   image: node:22-alpine
   variables:
+    FF_NETWORK_PER_BUILD: "true"
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
   services:
@@ -37,6 +38,7 @@ test:unit:
     paths:
       - .turbo/cache
   allow_failure: false
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
   script:
     - cd backend
     - pnpm run test:unit
@@ -45,6 +47,9 @@ test:unit:
     reports:
       junit:
         - backend/junit/unit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: backend/coverage/cobertura-coverage.xml
 
 test:integration:
   stage: test
@@ -59,7 +64,6 @@ test:integration:
     paths:
       - .turbo/cache
   script:
-    #docker comand with multiple compose files to start only db and backend services
     - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml up -d db backend
     - docker compose -f docker-compose.prod.yaml -f docker-compose.ci.yaml exec -T backend sh -c "sleep 5"
     - cd backend
@@ -88,6 +92,9 @@ e2e-test:
     - corepack prepare pnpm@latest --activate
     - pnpm install --frozen-lockfile
     - docker compose -f docker-compose.prod.yaml up -d db backend frontend nginx
+    - sleep 10
+    - pnpm test:e2e
+    - docker compose -f docker-compose.prod.yaml down
   artifacts:
     when: always
     reports:

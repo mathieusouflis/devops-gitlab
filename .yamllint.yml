@@ -1,5 +1,11 @@
 ---
 extends: default
+
+ignore: |
+  node_modules/
+  .next/
+  dist/
+
 rules:
   line-length:
     max: 300
