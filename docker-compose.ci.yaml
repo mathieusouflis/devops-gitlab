@@ -5,6 +5,12 @@
 # Publishes service ports to the DinD container's interface so the test
 # runner (node:22-alpine) can reach them at http://docker:<port>.
 services:
+  db:
+    healthcheck:
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
   backend:
     ports:
       - "${BACKEND_PORT:-3000}:${BACKEND_PORT:-3000}"
