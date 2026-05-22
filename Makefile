@@ -95,6 +95,12 @@ _tg-apply:
 	TF_VAR_app_postgres_user=$(POSTGRES_USER) \
 	TF_VAR_app_postgres_password=$(POSTGRES_PASSWORD) \
 	TF_VAR_ecr_repository_arn="$(ECR_REPOSITORY_ARN)" \
+	terragrunt init && \
+	AWS_ACCESS_KEY_ID="$(AWS_ACCESS_KEY_ID)" \
+	AWS_SECRET_ACCESS_KEY="$(AWS_SECRET_ACCESS_KEY)" \
+	TF_VAR_app_postgres_user=$(POSTGRES_USER) \
+	TF_VAR_app_postgres_password=$(POSTGRES_PASSWORD) \
+	TF_VAR_ecr_repository_arn="$(ECR_REPOSITORY_ARN)" \
 	terragrunt apply --auto-approve
 
 _tg-replace:

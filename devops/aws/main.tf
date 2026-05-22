@@ -32,6 +32,7 @@ module "iam" {
   source             = "./modules/iam"
   environment        = var.environment
   ecr_repository_arn = var.ecr_repository_arn
+  logs_bucket_name   = module.s3_logs.bucket_id
 }
 
 module "vpc" {
